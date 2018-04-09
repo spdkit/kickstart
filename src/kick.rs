@@ -1,4 +1,4 @@
-// [[file:~/Workspace/Programming/structure-predication/kick/kickstart.note::dacffd90-f296-4155-b1d5-d1b10033e853][dacffd90-f296-4155-b1d5-d1b10033e853]]
+// [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::dacffd90-f296-4155-b1d5-d1b10033e853][dacffd90-f296-4155-b1d5-d1b10033e853]]
 use rand::{self, Rng};
 use rand::distributions::{Distribution, Range, Normal};
 
@@ -7,51 +7,8 @@ use Points;
 
 use itertools::Itertools;
 
-/// create a random point within a sphere
-/// References
-/// ----------
-/// https://stackoverflow.com/a/5408344
-pub fn rand_point_within_sphere(radius: f64) -> Point3D {
-    let mut rng = rand::thread_rng();
-    let range = Range::new(-radius, radius);
-
-    // using the discarding method, which is simple and also fast
-    let radius2 = radius*radius;
-    loop {
-        let x = rng.sample(range);
-        let y = rng.sample(range);
-        let z = rng.sample(range);
-        let r2 = x*x + y*y + z*z;
-        if r2 <= radius2 {
-            return [x, y, z];
-        }
-    }
-}
-
-/// Generating uniformly distributed point on a sphere
-/// Alternative method 1 as described in:
-/// http://corysimon.github.io/articles/uniformdistn-on-sphere/
-pub fn rand_point_on_sphere(radius: f64) -> Point3D {
-    debug_assert!(radius > 0.0, "sphere radius cannot be negative: {:?}", radius);
-
-    let mut rng = rand::thread_rng();
-
-    let radius2 = radius*radius;
-    let normal = Normal::new(0.0, 10.0);
-    // avoid floating point precision lost when dividing by a very small number.
-    let min_radius2 = 0.1;
-    loop {
-        let x = rng.sample(normal);
-        let y = rng.sample(normal);
-        let z = rng.sample(normal);
-
-        let r2: f64 = x*x + y*y + z*z;
-        if r2 > min_radius2 {
-            let s = radius/r2.sqrt();
-            return [x*s, y*s, z*s];
-        }
-    }
-}
+use rand_point_within_sphere;
+use rand_point_on_sphere;
 
 /// check if any pair of points come too close
 fn close_contact(points: &Points) -> bool {
@@ -116,21 +73,4 @@ fn test_kick() {
     let x = kick(points.to_vec(), 0.8);
     println!("{:?}", x);
 }
-
-// #[test]
-// fn test_rand_point_on_sphere() {
-//     use std::io::prelude::*;
-//     use std::fs::File;
-
-//     let mut buffer = File::create("foo.xyz").unwrap();
-
-//     // let mut points = vec![];
-//     buffer.write(b"600\n").unwrap();
-//     buffer.write(b"title\n").unwrap();
-//     for i in 0..600 {
-//         let p = rand_point_on_sphere(20.);
-//         let s = format!("C {:-12.4}{:-12.4}{:-12.4}\n", p[0], p[1], p[2]);
-//         buffer.write(s.as_bytes());
-//     }
-// }
 // dacffd90-f296-4155-b1d5-d1b10033e853 ends here

@@ -1,4 +1,4 @@
-# [[file:~/Workspace/Programming/structure-predication/kick/kickstart.note::ffc75e20-e24a-42b9-8bc6-0ae6be1c3b1f][ffc75e20-e24a-42b9-8bc6-0ae6be1c3b1f]]
+# [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::ffc75e20-e24a-42b9-8bc6-0ae6be1c3b1f][ffc75e20-e24a-42b9-8bc6-0ae6be1c3b1f]]
 [package]
 name = "kickstart"
 version = "0.0.1"
@@ -10,4 +10,7 @@ cgmath = "*"
 timeit = "*"
 itertools = "*"
 rand = ">=0.5.0-pre.0"
+octree = { git = "https://github.com/ybyygu/rust-octree.git" }
+# gchemol = { git = "https://github.com/ybyygu/gchemol.git" }
+gchemol = { path = "/home/ybyygu/Workspace/Programming/gchemol" }
 # ffc75e20-e24a-42b9-8bc6-0ae6be1c3b1f ends here

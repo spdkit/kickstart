@@ -1,4 +1,4 @@
-// [[file:~/Workspace/Programming/structure-predication/kick/kickstart.note::0bd0f9c3-bcc6-4163-a8e5-43387b9d65fe][0bd0f9c3-bcc6-4163-a8e5-43387b9d65fe]]
+// [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::0bd0f9c3-bcc6-4163-a8e5-43387b9d65fe][0bd0f9c3-bcc6-4163-a8e5-43387b9d65fe]]
 extern crate cgmath;
 #[macro_use]
 extern crate timeit;
@@ -6,24 +6,11 @@ extern crate timeit;
 extern crate approx;
 extern crate rand;
 extern crate itertools;
+extern crate gchemol;
 
 mod kick;
-mod ckick;
+mod kickstart;
 
-pub use kick::rand_point_on_sphere;
-pub use kick::rand_point_within_sphere;
-
-pub type Point3D = [f64; 3];
-pub type Points = Vec<Point3D>;
-
-#[inline]
-pub fn euclidean_distance(p1: Point3D, p2: Point3D) -> f64 {
-    let mut d2 = 0.0;
-    for v in 0..3 {
-        let dv = p2[v] - p1[v];
-        d2 += dv*dv;
-    }
-
-    d2.sqrt()
-}
+use gchemol::{Points, Point3D, euclidean_distance};
+use gchemol::{rand_point_on_sphere, rand_point_within_sphere, random_rotate};
 // 0bd0f9c3-bcc6-4163-a8e5-43387b9d65fe ends here
