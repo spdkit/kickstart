@@ -71,6 +71,5 @@ fn test_kick() {
     ];
 
     let x = kick(points.to_vec(), 0.8);
-    println!("{:?}", x);
 }
 // dacffd90-f296-4155-b1d5-d1b10033e853 ends here
