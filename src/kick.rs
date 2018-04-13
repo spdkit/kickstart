@@ -7,8 +7,8 @@ use Points;
 
 use itertools::Itertools;
 
-use rand_point_within_sphere;
-use rand_point_on_sphere;
+use geometry::rand_point_within_sphere;
+use geometry::rand_point_on_sphere;
 
 /// check if any pair of points come too close
 fn close_contact(points: &Points) -> bool {
