@@ -6,8 +6,12 @@ extern crate timeit;
 extern crate approx;
 extern crate rand;
 extern crate itertools;
-extern crate gchemol;
 extern crate nalgebra;
+extern crate ncollide;
+extern crate petgraph;
+
+extern crate spe;
+extern crate gchemol;
 
 mod kick;
 mod kickstart;
