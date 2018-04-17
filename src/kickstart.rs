@@ -130,12 +130,169 @@ fn molecule_to_3dshape(mol: &Molecule) -> Compound3<f64> {
 }
 // 541c7076-3722-47ce-a867-9bb88122e954 ends here
 
+// [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::3b01d553-3e90-4a1d-ade5-ab3f71030849][3b01d553-3e90-4a1d-ade5-ab3f71030849]]
+use rand::{thread_rng, Rng};
+use petgraph::algo::has_path_connecting;
+use std::collections::HashMap;
+
+const EPSILON: f64 = 1.0E-6;
+
+fn get_bound_matrix(mol: &Molecule) -> Vec<Vec<f64>>{
+    let mut dm = mol.distance_matrix();
+    println!("{:?}", dm.len());
+    let max_rij = 90.0;
+    for i in mol.graph.node_indices() {
+        for j in mol.graph.node_indices() {
+            if i < j {
+                if let Some(e) = mol.graph.find_edge(i, j) {
+                    //
+                } else {
+                    let ai = &mol.graph[i];
+                    let aj = &mol.graph[j];
+                    let ri = ai.vdw_radius().unwrap();
+                    let rj = aj.vdw_radius().unwrap();
+                    let rij = ri + rj;
+                    if ! has_path_connecting(&mol.graph, i, j, None) {
+                        let i = i.index();
+                        let j = j.index();
+                        dm[i][j] = rij;
+                        // if dm[j][i] < rij {
+                        //     dm[j][i] = 5.0*rij;
+                        // }
+                        dm[j][i] = max_rij;
+                        // dm[j][i] += rij;
+                    }
+                }
+            }
+        }
+    }
+
+    dm
+}
+
+fn clean_structures(mols: &mut Vec<Molecule>, bounds: &Vec<Vec<f64>>) {
+    let mut rng = thread_rng();
+    let indices: Vec<_> = (0..mols.len()).collect();
+
+    let mut all = vec![];
+    for ref mol in mols.iter() {
+        let atoms: Vec<_> = mol.atoms().map(|a| a.index).collect();
+        all.push(atoms);
+    }
+
+    let mut rng = thread_rng();
+    let maxlam = 1.0;
+    let minlam = 0.001;
+    let maxcycle = 1000;
+    let maxstep = 500;
+    let dlam = (maxlam - minlam)/(maxcycle as f64);
+    let mut lam = maxlam;
+    // enter spe loop
+    for icycle in 0..maxcycle {
+        lam -= dlam;
+        // choose two different molecule
+        let (i, j) = loop {
+            let &i = rng.choose(&indices).unwrap();
+            // choose atom index
+            let &j = rng.choose(&indices).unwrap();
+            if i != j {
+                break (i,j);
+            }
+        };
+
+        // choose atom index from molecule i
+        let &ni = rng.choose(&all[i]).expect("ni");
+        let &pi = &mols[i].get_atom(ni).expect("pi").position;
+        for istep in 0..maxstep {
+            println!("cycle {:}, step {:}", icycle, istep);
+            // choose atom index from molecule j
+            let &nj = rng.choose(&all[j]).expect("nj");
+            let &pj = &mols[j].get_atom(nj).expect("pj").position;
+            let dij = euclidean_distance(pi, pj);
+
+            let bij = bounds[ni.index()][nj.index()];
+            let bji = bounds[nj.index()][ni.index()];
+            let mut bound = [bij, bji];
+            if bij > bji {
+                bound.swap(0, 1);
+            }
+
+            // update coordinates
+            let lij = bound[0];
+            let uij = bound[1];
+            if dij >= lij && dij <= uij {
+                continue;
+            }
+
+            println!("{:?}", (i,j, ni, nj, dij, bound));
+            println!("{:?}", (pi, pj));
+            // let rij = if (dij - lij).abs() < (dij - uij).abs() {
+            //     uij
+            // } else {
+            //     lij
+            // };
+            let rij = lij;
+
+            // calculate position shift
+            let mut si = [0.0; 3];
+            let mut sj = [0.0; 3];
+            let disparity = lam*(rij - dij) / (dij + EPSILON);
+            for v in 0..3 {
+                si[v] += 0.5 * disparity * (pi[v] - pj[v]);
+                sj[v] += 0.5 * disparity * (pj[v] - pi[v]);
+            }
+
+            // translate all atom in molecule i
+            {
+                for &vi in all[i].iter() {
+                    let mut atom = mols[i].get_atom_mut(vi).expect("i, vi");
+                    for v in 0..3 {
+                        atom.position[v] += si[v];
+                    }
+                }
+            }
+            // translate all atom in molecule j
+            {
+                for &vj in all[j].iter() {
+                    let mut atom = mols[j].get_atom_mut(vj).expect("j, vj");
+                    for v in 0..3 {
+                        atom.position[v] += sj[v];
+                    }
+                }
+            }
+        }
+    }
+}
+
+#[test]
+fn test_clean_structures() {
+    let mut mol = Molecule::from_file("/tmp/test.mol2").unwrap();
+    let bounds = get_bound_matrix(&mol);
+    let mut mols = mol.fragment();
+    clean_structures(&mut mols, &bounds);
+    let mut atoms = HashMap::new();
+    for ref mol in mols.iter() {
+        for a in mol.atoms() {
+            atoms.insert(a.index, a.clone());
+        }
+    }
+    let mut keys: Vec<_> = atoms.keys().collect();
+    keys.sort();
+    let mut newmol = Molecule::new("final");
+    for n in keys {
+        newmol.add_atom(atoms[n].clone());
+    }
+    newmol.to_file("/tmp/test3.mol2");
+    println!("{:?}", bounds);
+}
+// 3b01d553-3e90-4a1d-ade5-ab3f71030849 ends here
+
 // [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::6af98c4f-b799-46ae-a70d-09c54b5c1283][6af98c4f-b799-46ae-a70d-09c54b5c1283]]
 #[test]
 fn test_molecule_to3dshape(){
     use ncollide::query;
 
-    let mol = Molecule::from_file("/home/ybyygu/Workspace/Programming/gchemol/tests/data/c2h4.xyz");
+    let mol = Molecule::from_file("/home/ybyygu/Workspace/Programming/gchemol/tests/data/c2h4.xyz").unwrap();
     let s1 = molecule_to_3dshape(&mol);
     let s2 = molecule_to_3dshape(&mol);
 
@@ -162,12 +319,12 @@ fn test_molecule_to3dshape(){
 
 // [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::07e66245-e4ae-4f4f-9565-a8cccfb88c56][07e66245-e4ae-4f4f-9565-a8cccfb88c56]]
 #[test]
+#[ignore]
 fn test_molecule_spe() {
-    use gchemol::io::from_mol2file;
+    use gchemol::Molecule;
     use spe::pspe;
-    use petgraph::algo::has_path_connecting;
 
-    let mut mol = from_mol2file("/tmp/test.mol2").unwrap();
+    let mut mol = Molecule::from_file("/tmp/test.mol2").unwrap();
     for b in mol.bonds() {
         println!("{:?}", b);
     }
@@ -203,12 +360,12 @@ fn test_molecule_spe() {
     let mut positions: Vec<_> = mol.positions().map(|v| *v).collect();
 
     let maxcycle = 500;
-    let maxstep = 100;
+    let maxstep = 1000;
     let maxlam = 1.0;
     let minlam = 0.01;
     pspe(&mut positions, &dm, maxcycle, maxstep, maxlam, minlam);
     mol.set_positions(positions);
-    mol.to_file("/tmp/test2.xyz");
+    mol.to_file("/tmp/test2.mol2");
     println!("{:?}", dm);
 }
 // 07e66245-e4ae-4f4f-9565-a8cccfb88c56 ends here
