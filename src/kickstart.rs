@@ -1,4 +1,7 @@
 // [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::86373bab-a76e-4baf-842b-dc6cebc0bed7][86373bab-a76e-4baf-842b-dc6cebc0bed7]]
+use std::collections::HashMap;
+use quicli::prelude::*;
+
 use gchemol::{
     Atom,
     Molecule,
@@ -67,19 +70,38 @@ fn kickstart(mut mols: &mut Vec<Molecule>, r: f64) -> Vec<Molecule>{
         generate_rand_fragments(&mut mols, r);
     }
     let mol = combine_fragments_into_one(&mols);
-    let filename = format!("/tmp/{:}.mol2", r.round());
-    mol.to_file(filename);
-
+    // let filename = format!("/tmp/{:}.mol2", r.round());
+    // mol.to_file(filename);
     mol.fragment()
+}
+
+// FIXME: read formula
+pub fn kick(formula: &HashMap<&str, usize>) -> Result<Molecule> {
+    let mut mols = create_c6h6();
+
+    // initial sphere radius
+    let mut radius = 5.0;
+    loop {
+        mols = kickstart(&mut mols, radius);
+        radius -= 1.0;
+        if radius < 1.5 {
+            break;
+        }
+    }
+
+    let mol = combine_fragments_into_one(&mols);
+
+    Ok(mol)
 }
 
 #[test]
 fn test_distribute() {
-    let mut mols = create_c6h6();
-    let mut mols = kickstart(&mut mols, 5.0);
-    let mut mols = kickstart(&mut mols, 4.0);
-    let mut mols = kickstart(&mut mols, 3.0);
-    let mut mols = kickstart(&mut mols, 2.0);
-    let mut mols = kickstart(&mut mols, 1.0);
+    let mut formula = HashMap::new();
+    formula.insert("C", 6);
+    formula.insert("H", 6);
+
+    let mol = kick(&formula).expect("kick new mol");
+    assert_eq!(12, mol.natoms());
+    // mol.to_file("/tmp/bb.mol2");
 }
 // 86373bab-a76e-4baf-842b-dc6cebc0bed7 ends here
