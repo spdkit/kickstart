@@ -20,18 +20,18 @@ fn rotate_molecule(mol: &mut Molecule) {
     mol.set_positions(new).expect("assign new positions");
 }
 
-fn create_c6h6() -> Vec<Molecule> {
-    let mut mols = vec![];
-    for e in vec!["C", "H"] {
-        for i in 0..6 {
-            let mut mol = Molecule::new(&format!("{}{}", e, i));
-            mol.add_atom(Atom::new(e, [0.0; 3]));
-            mols.push(mol);
-        }
-    }
+// fn create_c6h6() -> Vec<Molecule> {
+//     let mut mols = vec![];
+//     for e in vec!["C", "H"] {
+//         for i in 0..6 {
+//             let mut mol = Molecule::new(&format!("{}{}", e, i));
+//             mol.add_atom(Atom::new(e, [0.0; 3]));
+//             mols.push(mol);
+//         }
+//     }
 
-    mols
-}
+//     mols
+// }
 
 fn combine_fragments_into_one(fragments: &Vec<Molecule>) -> Molecule {
     let mut mol = Molecule::new("combined");
@@ -76,14 +76,17 @@ fn kickstart(mut mols: &mut Vec<Molecule>, r: f64) -> Vec<Molecule>{
 }
 
 // FIXME: read formula
-pub fn kick(formula: &HashMap<&str, usize>) -> Result<Molecule> {
-    let mut mols = create_c6h6();
+pub fn kick(mol: &Molecule) -> Result<Molecule> {
+    let mut mols = mol.fragment();
+    if mols.len() <= 1 {
+        bail!("cannot break molecule into multiple parts!");
+    }
 
     // initial sphere radius
     let mut radius = 5.0;
     loop {
         mols = kickstart(&mut mols, radius);
-        radius -= 1.0;
+        radius -= 0.5;
         if radius < 1.5 {
             break;
         }
@@ -96,12 +99,10 @@ pub fn kick(formula: &HashMap<&str, usize>) -> Result<Molecule> {
 
 #[test]
 fn test_distribute() {
-    let mut formula = HashMap::new();
-    formula.insert("C", 6);
-    formula.insert("H", 6);
-
-    let mol = kick(&formula).expect("kick new mol");
+    let filename = "tests/files/c6h6.mol2";
+    let mut mol = Molecule::from_file(filename).expect("mol2 file");
+    let mol = kick(&mol).expect("kick new mol");
     assert_eq!(12, mol.natoms());
-    // mol.to_file("/tmp/bb.mol2");
+    mol.to_file("/tmp/k.mol2");
 }
 // 86373bab-a76e-4baf-842b-dc6cebc0bed7 ends here

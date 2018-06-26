@@ -4,8 +4,8 @@ extern crate cgmath;
 #[macro_use] extern crate approx;
 extern crate rand;
 extern crate itertools;
-extern crate nalgebra;
-extern crate ncollide;
+// extern crate nalgebra;
+// extern crate ncollide;
 extern crate petgraph;
 
 extern crate spe;
