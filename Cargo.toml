@@ -1,20 +1,20 @@
+# cargo
+# #+name: ffc75e20-e24a-42b9-8bc6-0ae6be1c3b1f
+
 # [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::ffc75e20-e24a-42b9-8bc6-0ae6be1c3b1f][ffc75e20-e24a-42b9-8bc6-0ae6be1c3b1f]]
 [package]
 name = "kickstart"
-version = "0.0.1"
+version = "0.0.2"
+edition = "2018"
 authors = ["Wenping Guo <ybyygu@gmail.com>"]
 
 [dependencies]
 approx = "*"
-cgmath = "*"
 timeit = "*"
 quicli = "*"
-petgraph = "*"
+petgraph = ">=0.4.13"
 itertools = "*"
-rand = ">=0.5.0-pre.0"
+rand = ">=0.5.0"
 octree = { git = "https://github.com/ybyygu/rust-octree.git" }
 gchemol = { path = "/home/ybyygu/Workspace/Programming/gchemol" }
-spe = { path = "/home/ybyygu/Workspace/Programming/spe" }
-nalgebra = "*"
-ncollide = "*"
 # ffc75e20-e24a-42b9-8bc6-0ae6be1c3b1f ends here

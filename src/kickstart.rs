@@ -1,4 +1,6 @@
-// [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::86373bab-a76e-4baf-842b-dc6cebc0bed7][86373bab-a76e-4baf-842b-dc6cebc0bed7]]
+// new
+
+// [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*new][new:1]]
 use std::collections::HashMap;
 use quicli::prelude::*;
 
@@ -17,7 +19,7 @@ use gchemol::geometry::{
 fn rotate_molecule(mol: &mut Molecule) {
     let positions = mol.positions();
     let new = rand_rotate(&positions);
-    mol.set_positions(new).expect("assign new positions");
+    mol.set_positions(&new).expect("assign new positions");
 }
 
 // fn create_c6h6() -> Vec<Molecule> {
@@ -77,6 +79,7 @@ fn kickstart(mut mols: &mut Vec<Molecule>, r: f64) -> Vec<Molecule>{
 
 // FIXME: read formula
 pub fn kick(mol: &Molecule) -> Result<Molecule> {
+    info!("kick molecule...");
     let mut mols = mol.fragment();
     if mols.len() <= 1 {
         bail!("cannot break molecule into multiple parts!");
@@ -99,10 +102,12 @@ pub fn kick(mol: &Molecule) -> Result<Molecule> {
 
 #[test]
 fn test_distribute() {
+    use gchemol::prelude::*;
+
     let filename = "tests/files/c6h6.mol2";
     let mut mol = Molecule::from_file(filename).expect("mol2 file");
     let mol = kick(&mol).expect("kick new mol");
     assert_eq!(12, mol.natoms());
     mol.to_file("/tmp/k.mol2");
 }
-// 86373bab-a76e-4baf-842b-dc6cebc0bed7 ends here
+// new:1 ends here
