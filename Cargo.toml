@@ -1,20 +1,25 @@
-# cargo
-# #+name: ffc75e20-e24a-42b9-8bc6-0ae6be1c3b1f
+# cargo.toml
 
-# [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::ffc75e20-e24a-42b9-8bc6-0ae6be1c3b1f][ffc75e20-e24a-42b9-8bc6-0ae6be1c3b1f]]
+# [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*cargo.toml][cargo.toml:1]]
 [package]
 name = "kickstart"
-version = "0.0.2"
+version = "0.0.3"
 edition = "2018"
 authors = ["Wenping Guo <ybyygu@gmail.com>"]
 
 [dependencies]
 approx = "*"
+petgraph = "0.4"
+rand = "0.5"
 timeit = "*"
-quicli = "*"
-petgraph = ">=0.4.13"
+quicli = "0.4"
+genevo = "0.2"
 itertools = "*"
-rand = ">=0.5.0"
-octree = { git = "https://github.com/ybyygu/rust-octree.git" }
-gchemol = { path = "/home/ybyygu/Workspace/Programming/gchemol" }
-# ffc75e20-e24a-42b9-8bc6-0ae6be1c3b1f ends here
+gosh = {git = "https://github.com/gosh-rs/gosh.git", tag="v0.0.20"}
+spdkit = { git = "https://github.com/spdkit/spdkit.git" }
+structopt = "0.2"
+serde = "*"
+serde_derive = "*"
+toml = "*"
+lazy_static = "*"
+# cargo.toml:1 ends here

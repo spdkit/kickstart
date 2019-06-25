@@ -1,20 +1,18 @@
+// imports
+
+// [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*imports][imports:1]]
+use std::collections::HashMap;
+
+use gosh::gchemol::geometry::{rand_points_within_sphere, rand_rotate};
+use gosh::gchemol::prelude::*;
+use gosh::gchemol::{io, Atom, Molecule};
+
+use crate::common::*;
+// imports:1 ends here
+
 // new
 
 // [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*new][new:1]]
-use std::collections::HashMap;
-use quicli::prelude::*;
-
-use gchemol::{
-    Atom,
-    Molecule,
-    io,
-};
-
-use gchemol::geometry::{
-    rand_rotate,
-    rand_points_within_sphere,
-};
-
 /// rotate the molecule in place
 fn rotate_molecule(mol: &mut Molecule) {
     let positions = mol.positions();
@@ -67,7 +65,7 @@ fn generate_rand_fragments(fragments: &mut Vec<Molecule>, r: f64) {
     }
 }
 
-fn kickstart(mut mols: &mut Vec<Molecule>, r: f64) -> Vec<Molecule>{
+fn kickstart(mut mols: &mut Vec<Molecule>, r: f64) -> Vec<Molecule> {
     {
         generate_rand_fragments(&mut mols, r);
     }
@@ -102,7 +100,7 @@ pub fn kick(mol: &Molecule) -> Result<Molecule> {
 
 #[test]
 fn test_distribute() {
-    use gchemol::prelude::*;
+    use gosh::gchemol::prelude::*;
 
     let filename = "tests/files/c6h6.mol2";
     let mut mol = Molecule::from_file(filename).expect("mol2 file");
