@@ -93,6 +93,7 @@ fn get_energy(mol: &Molecule, runfile: &str) -> Result<f64> {
 fn get_optimized_molecule(mol: &Molecule, runfile: &str) -> Result<Molecule> {
     info!("optimize geometry using bbm model ...");
     let mut bbm = BlackBox::from_dir(runfile);
+    dbg!(runfile);
     let mr = bbm.compute(mol)?;
 
     if let Some(energy) = mr.energy {
@@ -160,9 +161,10 @@ fn create_population(config: &Config) -> Population<MoleculeGenome> {
     info!("create population using kick ..");
     let mol = Molecule::from_file(&config.molfile).expect("mol2");
     let mut individuals = vec![];
-    for _ in 0..10 {
+    for i in 0..10 {
         let mol = kick(&mol).expect("kick mol");
-        let mol = get_optimized_molecule(&mol, &config.runfile_opt).expect("dftb opt mol");
+        dbg!(i);
+        let mol = get_optimized_molecule(&mol, &config.runfile_opt).expect("opt mol");
         let g = molecule_to_genome(&mol);
         individuals.push(g);
     }

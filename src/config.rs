@@ -24,8 +24,8 @@ pub struct Search {
 impl Default for Config {
     fn default() -> Self {
         Config {
-            runfile_sp: "submit-sp.sh".into(),
-            runfile_opt: "submit-opt.sh".into(),
+            runfile_sp: "/share/apps/mopac/sp".into(),
+            runfile_opt: "/share/apps/mopac/opt".into(),
             molfile: "test.mol2".into(),
             search: Search {
                 max_generations: 10,

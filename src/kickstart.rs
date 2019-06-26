@@ -14,24 +14,13 @@ use crate::common::*;
 
 // [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*new][new:1]]
 /// rotate the molecule in place
-fn rotate_molecule(mol: &mut Molecule) {
+fn rotate_molecule(mol: &mut Molecule) -> Result<()> {
     let positions = mol.positions();
     let new = rand_rotate(&positions);
-    mol.set_positions(&new).expect("assign new positions");
+    mol.set_positions(&new)?;
+
+    Ok(())
 }
-
-// fn create_c6h6() -> Vec<Molecule> {
-//     let mut mols = vec![];
-//     for e in vec!["C", "H"] {
-//         for i in 0..6 {
-//             let mut mol = Molecule::new(&format!("{}{}", e, i));
-//             mol.add_atom(Atom::new(e, [0.0; 3]));
-//             mols.push(mol);
-//         }
-//     }
-
-//     mols
-// }
 
 fn combine_fragments_into_one(fragments: &Vec<Molecule>) -> Molecule {
     let mut mol = Molecule::new("combined");
@@ -45,17 +34,36 @@ fn combine_fragments_into_one(fragments: &Vec<Molecule>) -> Molecule {
 
     // perceive bonding connectivity
     mol.rebond();
-    mol.clean();
+
+    let mut nan = false;
+    for a in mol.atoms() {
+        let [x, y, z] = a.position();
+        if x.is_nan() {
+            nan = true;
+        }
+    }
+
+    // if !nan {
+    //     mol.to_file("/tmp/nan1.mol2");
+    // }
+
+    mol.clean().expect("clean");
     mol
 }
 
-fn generate_rand_fragments(fragments: &mut Vec<Molecule>, r: f64) {
+fn generate_rand_fragments(fragments: &mut Vec<Molecule>, r: f64) -> Result<()> {
     let n = fragments.len();
     let pts = rand_points_within_sphere(r, n);
     println!("kick {:} fragments, radius = {:.2}", n, r);
     for i in 0..n {
         let mut mol = &mut fragments[i];
-        rotate_molecule(&mut mol);
+        let positions = mol.positions();
+        if positions[0][0].is_nan() {
+            dbg!(i);
+            dbg!(&positions);
+        }
+
+        rotate_molecule(&mut mol)?;
         let center = mol.center_of_geometry();
         let mut p = pts[i];
         for j in 0..3 {
@@ -63,30 +71,31 @@ fn generate_rand_fragments(fragments: &mut Vec<Molecule>, r: f64) {
         }
         mol.translate(p);
     }
+
+    Ok(())
 }
 
-fn kickstart(mut mols: &mut Vec<Molecule>, r: f64) -> Vec<Molecule> {
-    {
-        generate_rand_fragments(&mut mols, r);
-    }
+fn kickstart(mut mols: &mut Vec<Molecule>, r: f64) -> Result<Vec<Molecule>> {
+    generate_rand_fragments(&mut mols, r)?;
+
     let mol = combine_fragments_into_one(&mols);
-    // let filename = format!("/tmp/{:}.mol2", r.round());
-    // mol.to_file(filename);
-    mol.fragment()
+    let mols = mol.fragment();
+
+    Ok(mols)
 }
 
 // FIXME: read formula
 pub fn kick(mol: &Molecule) -> Result<Molecule> {
-    info!("kick molecule...");
     let mut mols = mol.fragment();
+    info!("kick {} fragments ...", mols.len());
     if mols.len() <= 1 {
         bail!("cannot break molecule into multiple parts!");
     }
 
     // initial sphere radius
-    let mut radius = 5.0;
+    let mut radius = 6.0;
     loop {
-        mols = kickstart(&mut mols, radius);
+        mols = kickstart(&mut mols, radius)?;
         radius -= 0.5;
         if radius < 1.5 {
             break;

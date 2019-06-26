@@ -15,19 +15,21 @@ use kickstart::config::Config;
 
 #[derive(Debug, StructOpt)]
 struct Cli {
-    #[structopt(help = "Configuration file in toml format", parse(from_os_str))]
-    configfile: PathBuf,
     #[structopt(flatten)]
     verbosity: Verbosity,
+
+    #[structopt(help = "Configuration file in toml format", parse(from_os_str))]
+    configfile: PathBuf,
 }
 
 fn main() -> CliResult {
     let args = Cli::from_args();
     args.verbosity.setup_env_logger(&env!("CARGO_PKG_NAME"))?;
 
-    let toml_str = read_file(&args.configfile)?;
+    let toml_str = read_file(args.configfile)?;
     let config: Config = toml::from_str(&toml_str)?;
-    kickstart::search::genetic_search(&config)?;
+
+    kickstart::genetic_search(&config)?;
 
     Ok(())
 }
