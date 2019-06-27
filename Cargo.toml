@@ -8,19 +8,13 @@ edition = "2018"
 authors = ["Wenping Guo <ybyygu@gmail.com>"]
 
 [dependencies]
-approx = "*"
-petgraph = "0.4"
 rand = "0.6"
-timeit = "*"
 quicli = "0.4"
 genevo = "0.4"
-itertools = "*"
 gosh = {git = "https://github.com/gosh-rs/gosh.git", tag="v0.0.21"}
 #spdkit = { git = "https://github.com/spdkit/spdkit.git" }
 spdkit = { path = "../spdkit" }
 structopt = "0.2"
 serde = "*"
-serde_derive = "*"
 toml = "*"
-lazy_static = "*"
 # cargo.toml:1 ends here

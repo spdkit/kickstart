@@ -269,7 +269,7 @@ impl<'a> MutationOp<MoleculeGenome> for KickMutator<'a> {
                 })
                 .expect("mutate molecule failed 2")
         };
-        molecule_to_genome(&mol)
+        molecule_to_genome(&mol.sorted())
     }
 }
 
@@ -319,17 +319,21 @@ impl<'a> CrossoverOp<MoleculeGenome> for CutAndSpliceCrossBreeder<'a> {
 // [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*genetic][genetic:1]]
 // cluster structure search using genetic algorithm
 pub fn genetic_search(config: &Config) -> Result<()> {
+    let mrate = config.search.mutation_rate;
+    info!("mutation rate: {}", mrate);
+
     let (initial_population, eref) = get_population_and_eref(&config);
 
     info!("reference energy = {}", eref);
-    let feval = ClusterFitnessEvaluator::new(&config.runfile_sp, eref);
+    let mut feval = ClusterFitnessEvaluator::new(&config.runfile_sp, eref);
+    feval.temperature = config.search.boltzmann_temperature;
     let algorithm = genetic_algorithm()
         .with_evaluation(feval.clone())
         // .with_selection(RouletteWheelSelector::new(0.7, 2))
-        .with_selection(TournamentSelector::new(0.7, 2, 5, 1.0, true))
+        .with_selection(TournamentSelector::new(0.7, 2, 4, 1.0, true))
         .with_crossover(CutAndSpliceCrossBreeder {config: &config})
         .with_mutation(KickMutator {
-            mutation_rate: 0.1,
+            mutation_rate: mrate,
             config: &config,
         })
         .with_reinsertion(ElitistReinserter::new(
@@ -345,17 +349,19 @@ pub fn genetic_search(config: &Config) -> Result<()> {
         .until(GenerationLimit::new(ngen))
         .build();
 
+    let mut i = 0;
+    let mut old_fitness = 0;
     loop {
         match magcalc_sim.step() {
             Ok(SimResult::Intermediate(step)) => {
                 let evaluated_population = step.result.evaluated_population;
+                let average_fitness = evaluated_population.average_fitness();
                 let best_solution = step.result.best_solution;
+                let best_fitness = best_solution.solution.fitness;
                 println!(
                     "Step: generation: {}, average_fitness: {}, \
                      best fitness: {},",
-                    step.iteration,
-                    evaluated_population.average_fitness(),
-                    best_solution.solution.fitness
+                    step.iteration, average_fitness, best_fitness
                 );
 
                 let mols: Vec<_> = evaluated_population
@@ -365,8 +371,12 @@ pub fn genetic_search(config: &Config) -> Result<()> {
                     .map(|(g, v)| molecule_from_genome(&g))
                     .collect();
 
-                let ofile = format!("./g{:03}.xyz", step.iteration);
-                io::write(ofile, &mols)?;
+                if *average_fitness > old_fitness {
+                    old_fitness = *average_fitness;
+                    i += 1;
+                    let ofile = format!("./g{:03}.xyz", i);
+                    io::write(ofile, &mols)?;
+                }
             }
             Ok(SimResult::Final(step, processing_time, duration, stop_reason)) => {
                 let best_solution = step.result.best_solution;
