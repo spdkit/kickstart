@@ -13,7 +13,7 @@ petgraph = "0.4"
 rand = "0.5"
 timeit = "*"
 quicli = "0.4"
-genevo = "0.2"
+genevo = "0.4"
 itertools = "*"
 gosh = {git = "https://github.com/gosh-rs/gosh.git", tag="v0.0.21"}
 #spdkit = { git = "https://github.com/spdkit/spdkit.git" }

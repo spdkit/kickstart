@@ -4,21 +4,21 @@
 // :END:
 
 // [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*config.rs][config.rs:1]]
-use toml;
 use serde::*;
+use toml;
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
 pub struct Config {
     pub runfile_sp: String,
     pub runfile_opt: String,
     pub molfile: String,
-
     pub search: Search,
 }
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
 pub struct Search {
     pub max_generations: u64,
+    pub population_size: usize,
 }
 
 impl Default for Config {
@@ -28,12 +28,12 @@ impl Default for Config {
             runfile_opt: "/share/apps/mopac/opt".into(),
             molfile: "test.mol2".into(),
             search: Search {
+                population_size: 10,
                 max_generations: 10,
-            }
+            },
         }
     }
 }
-
 
 #[test]
 fn test_config() {

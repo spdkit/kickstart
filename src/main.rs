@@ -4,22 +4,20 @@
 // :END:
 
 // [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*main.rs][main.rs:1]]
-use std::collections::HashMap;
-use std::path::{Path, PathBuf};
-
-use gosh::gchemol::Molecule;
 use quicli::prelude::*;
 use structopt::*;
 
 use kickstart::config::Config;
 
+/// Chemical structure explorer
 #[derive(Debug, StructOpt)]
 struct Cli {
     #[structopt(flatten)]
     verbosity: Verbosity,
 
+    /// configuration file for kickstart
     #[structopt(help = "Configuration file in toml format", parse(from_os_str))]
-    configfile: PathBuf,
+    configfile: std::path::PathBuf,
 }
 
 fn main() -> CliResult {

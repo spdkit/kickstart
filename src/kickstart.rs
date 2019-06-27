@@ -30,7 +30,7 @@ fn combine_fragments_into_one(fragments: &Vec<Molecule>) -> Molecule {
             mol.add_atom(a.clone());
         }
     }
-    println!("combined {} fragments.", fragments.len());
+    debug!("combined {} fragments.", fragments.len());
 
     // perceive bonding connectivity
     mol.rebond();
@@ -43,10 +43,6 @@ fn combine_fragments_into_one(fragments: &Vec<Molecule>) -> Molecule {
         }
     }
 
-    // if !nan {
-    //     mol.to_file("/tmp/nan1.mol2");
-    // }
-
     mol.clean().expect("clean");
     mol
 }
@@ -54,7 +50,7 @@ fn combine_fragments_into_one(fragments: &Vec<Molecule>) -> Molecule {
 fn generate_rand_fragments(fragments: &mut Vec<Molecule>, r: f64) -> Result<()> {
     let n = fragments.len();
     let pts = rand_points_within_sphere(r, n);
-    println!("kick {:} fragments, radius = {:.2}", n, r);
+    debug!("kick {:} fragments, radius = {:.2}", n, r);
     for i in 0..n {
         let mut mol = &mut fragments[i];
         let positions = mol.positions();
@@ -87,16 +83,17 @@ fn kickstart(mut mols: &mut Vec<Molecule>, r: f64) -> Result<Vec<Molecule>> {
 // FIXME: read formula
 pub fn kick(mol: &Molecule) -> Result<Molecule> {
     let mut mols = mol.fragment();
-    info!("kick {} fragments ...", mols.len());
+    debug!("kick {} fragments ...", mols.len());
     if mols.len() <= 1 {
-        bail!("cannot break molecule into multiple parts!");
+        warn!("cannot break molecule into multiple parts!");
+        return Ok(mol.to_owned());
     }
 
     // initial sphere radius
-    let mut radius = 6.0;
+    let mut radius = 8.0;
     loop {
         mols = kickstart(&mut mols, radius)?;
-        radius -= 0.5;
+        radius -= 0.2;
         if radius < 1.5 {
             break;
         }
