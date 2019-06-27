@@ -42,38 +42,6 @@ fn molecule_to_genome(mol: &Molecule) -> MoleculeGenome {
 }
 // base:1 ends here
 
-// fitness
-
-// [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*fitness][fitness:1]]
-// energy => fitness
-fn calc_fitness(energy: f64) -> u32 {
-    let temperature = 50000.;
-    let eref = -2415.35663;
-    let value = (energy - eref) * 96.;
-    let fitness = (-1.0 * value / (temperature * 0.0083145)).exp();
-
-    (fitness * 1000.) as u32
-}
-
-#[test]
-fn test_calc_fit() {
-    let x = -811.22008;
-    let x = calc_fitness(x);
-    dbg!(x);
-}
-
-#[derive(Clone, Debug, PartialEq)]
-struct ClusterFitnessEvaluator<'a> {
-    runfile: &'a str,
-}
-
-impl<'a> ClusterFitnessEvaluator<'a> {
-    fn new(runfile: &'a str) -> Self {
-        ClusterFitnessEvaluator { runfile: &runfile }
-    }
-}
-// fitness:1 ends here
-
 // model
 
 // [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*model][model:1]]
@@ -127,6 +95,43 @@ fn get_optimized_molecule(mol: &Molecule, runfile: &str) -> Result<Molecule> {
         }
     }
 }
+// model:1 ends here
+
+// fitness
+
+// [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*fitness][fitness:1]]
+// energy => fitness
+fn calc_fitness(energy: f64, eref: f64) -> u32 {
+    let temperature = 50000.;
+    let value = (energy - eref) * 96.;
+    let fitness = (-1.0 * value / (temperature * 0.0083145)).exp();
+
+    (fitness * 1000.) as u32
+}
+
+#[test]
+fn test_calc_fit() {
+    let x = -811.22008;
+    let x = calc_fitness(x, -811.2);
+    dbg!(x);
+}
+
+#[derive(Clone, Debug, PartialEq)]
+struct ClusterFitnessEvaluator<'a> {
+    temperature: f64,
+    runfile: &'a str,
+    eref: f64,
+}
+
+impl<'a> ClusterFitnessEvaluator<'a> {
+    fn new(runfile: &'a str, eref: f64) -> Self {
+        ClusterFitnessEvaluator {
+            runfile: &runfile,
+            eref: eref,
+            temperature: 20000.0,
+        }
+    }
+}
 
 impl<'a> FitnessFunction<MoleculeGenome, u32> for ClusterFitnessEvaluator<'a> {
     fn fitness_of(&self, individual: &MoleculeGenome) -> u32 {
@@ -136,7 +141,7 @@ impl<'a> FitnessFunction<MoleculeGenome, u32> for ClusterFitnessEvaluator<'a> {
         // mapping energy to fitness
         let fitness = {
             if let Ok(energy) = get_energy(&mol, &self.runfile) {
-                let fitness = calc_fitness(energy);
+                let fitness = calc_fitness(energy, self.eref);
                 println!("final energy = {:-12.5}, fitness= {}", energy, fitness);
                 fitness
             } else {
@@ -160,7 +165,7 @@ impl<'a> FitnessFunction<MoleculeGenome, u32> for ClusterFitnessEvaluator<'a> {
         0
     }
 }
-// model:1 ends here
+// fitness:1 ends here
 
 // operators
 
@@ -178,19 +183,26 @@ use spdkit;
 
 /// create a population with n individuals.
 /// initial molecule will be read from `molfile`
-fn create_population(config: &Config) -> Population<MoleculeGenome> {
+fn get_population_and_eref(config: &Config) -> (Population<MoleculeGenome>, f64) {
     info!("create initial population ..");
     let mol = Molecule::from_file(&config.molfile).expect("mol2");
     let mut individuals = vec![];
     let n = config.search.population_size;
+
+    // get reference energy
+    let mut eref = std::f64::MAX;
     for i in 0..n {
         let mol = kick(&mol).expect("kick mol");
         let mol = get_optimized_molecule(&mol, &config.runfile_opt).expect("opt mol");
         let g = molecule_to_genome(&mol);
+        let e = get_energy(&mol, &config.runfile_sp).expect("sp energy");
+        if e < eref {
+            eref = e;
+        }
         individuals.push(g);
     }
 
-    Population::with_individuals(individuals)
+    (Population::with_individuals(individuals), eref)
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -201,16 +213,23 @@ pub struct KickMutator<'a> {
 
 impl<'a> KickMutator<'a> {
     pub fn mutate_molecule(&self, mol: &mut Molecule, mutate: bool) -> Result<Molecule> {
+        use rand::seq::SliceRandom;
+
         if mutate {
             let nbonds = mol.nbonds();
             if nbonds > 0 {
-                // choose n bonds randomly
-                let edges: Vec<_> = mol.bonds().map(|b| b.index()).collect();
+                // remove bonds randomly to break molecule into parts
+                let mut edges: Vec<_> = mol.bonds().map(|b| b.index()).collect();
                 let mut rng = thread_rng();
-                let n = rng.gen_range(0, nbonds);
-                mol.remove_bond(edges[n]);
+                edges.shuffle(&mut rng);
+                let nremoved = nbonds.min(5).max(2);
+                let n = rng.gen_range(1, nremoved);
+                info!("will remove {} bonds ...", n);
+                for i in 0..n {
+                    mol.remove_bond(edges[i]);
+                }
             } else {
-                warn!("molecule has no bonds.");
+                warn!("molecule has no bonds!");
             }
 
             let mol = kick(&mol)?;
@@ -300,9 +319,10 @@ impl<'a> CrossoverOp<MoleculeGenome> for CutAndSpliceCrossBreeder<'a> {
 // [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*genetic][genetic:1]]
 // cluster structure search using genetic algorithm
 pub fn genetic_search(config: &Config) -> Result<()> {
-    let initial_population = create_population(&config);
+    let (initial_population, eref) = get_population_and_eref(&config);
 
-    let feval = ClusterFitnessEvaluator::new(&config.runfile_sp);
+    info!("reference energy = {}", eref);
+    let feval = ClusterFitnessEvaluator::new(&config.runfile_sp, eref);
     let algorithm = genetic_algorithm()
         .with_evaluation(feval.clone())
         // .with_selection(RouletteWheelSelector::new(0.7, 2))
@@ -342,9 +362,7 @@ pub fn genetic_search(config: &Config) -> Result<()> {
                     .individuals()
                     .iter()
                     .zip(evaluated_population.fitness_values())
-                    .map(|(g, v)| {
-                        molecule_from_genome(&g)
-                    })
+                    .map(|(g, v)| molecule_from_genome(&g))
                     .collect();
 
                 let ofile = format!("./g{:03}.xyz", step.iteration);

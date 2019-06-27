@@ -10,7 +10,7 @@ authors = ["Wenping Guo <ybyygu@gmail.com>"]
 [dependencies]
 approx = "*"
 petgraph = "0.4"
-rand = "0.5"
+rand = "0.6"
 timeit = "*"
 quicli = "0.4"
 genevo = "0.4"
