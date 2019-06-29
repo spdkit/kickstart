@@ -6,41 +6,13 @@ use genevo::prelude::*;
 use genevo::types::fmt::Display;
 
 use gosh::gchemol::prelude::*;
-use gosh::gchemol::{Atom, Molecule, io};
+use gosh::gchemol::{io, Atom, Molecule};
 
 use crate::common::*;
 use crate::config::Config;
+
+use crate::search2::*;
 // imports:1 ends here
-
-// base
-
-// [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*base][base:1]]
-type MoleculeGenome = Vec<(usize, f64, f64, f64)>;
-
-/// FIXME: bond connectivity will be lost
-fn molecule_from_genome(genome: &MoleculeGenome) -> Molecule {
-    let mut mol = Molecule::new("genome");
-    for (n, x, y, z) in genome {
-        let a = Atom::build().element(*n).position(*x, *y, *z).finish();
-        mol.add_atom(a);
-    }
-
-    mol.rebond();
-    mol
-}
-
-fn molecule_to_genome(mol: &Molecule) -> MoleculeGenome {
-    let mut g = vec![];
-
-    for a in mol.atoms() {
-        let n = a.number();
-        let [x, y, z] = a.position();
-        g.push((n, x, y, z));
-    }
-
-    g
-}
-// base:1 ends here
 
 // model
 
@@ -101,8 +73,7 @@ fn get_optimized_molecule(mol: &Molecule, runfile: &str) -> Result<Molecule> {
 
 // [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*fitness][fitness:1]]
 // energy => fitness
-fn calc_fitness(energy: f64, eref: f64) -> u32 {
-    let temperature = 50000.;
+fn calc_fitness(energy: f64, eref: f64, temperature: f64) -> u32 {
     let value = (energy - eref) * 96.;
     let fitness = (-1.0 * value / (temperature * 0.0083145)).exp();
 
@@ -112,7 +83,7 @@ fn calc_fitness(energy: f64, eref: f64) -> u32 {
 #[test]
 fn test_calc_fit() {
     let x = -811.22008;
-    let x = calc_fitness(x, -811.2);
+    let x = calc_fitness(x, -811.2, 50000.);
     dbg!(x);
 }
 
@@ -135,14 +106,16 @@ impl<'a> ClusterFitnessEvaluator<'a> {
 
 impl<'a> FitnessFunction<MoleculeGenome, u32> for ClusterFitnessEvaluator<'a> {
     fn fitness_of(&self, individual: &MoleculeGenome) -> u32 {
-        debug!("evaluate fitness ...");
-        let mol = molecule_from_genome(&individual);
+        let mol = individual.to_molecule();
 
         // mapping energy to fitness
         let fitness = {
             if let Ok(energy) = get_energy(&mol, &self.runfile) {
-                let fitness = calc_fitness(energy, self.eref);
-                println!("final energy = {:-12.5}, fitness= {}", energy, fitness);
+                let fitness = calc_fitness(energy, self.eref, self.temperature);
+                println!(
+                    "genome {:10} energy = {:-12.5} fitness= {}",
+                    mol.name, energy, fitness
+                );
                 fitness
             } else {
                 warn!("no energy for {}", &mol.name);
@@ -194,12 +167,11 @@ fn get_population_and_eref(config: &Config) -> (Population<MoleculeGenome>, f64)
     for i in 0..n {
         let mol = kick(&mol).expect("kick mol");
         let mol = get_optimized_molecule(&mol, &config.runfile_opt).expect("opt mol");
-        let g = molecule_to_genome(&mol);
         let e = get_energy(&mol, &config.runfile_sp).expect("sp energy");
         if e < eref {
             eref = e;
         }
-        individuals.push(g);
+        individuals.push(mol.to_genome());
     }
 
     (Population::with_individuals(individuals), eref)
@@ -242,7 +214,7 @@ impl<'a> KickMutator<'a> {
 
 impl<'a> GeneticOperator for KickMutator<'a> {
     fn name() -> String {
-        "Kick-start-Mutation".to_string()
+        "Kickstart-Mutation".to_string()
     }
 }
 
@@ -251,7 +223,7 @@ impl<'a> MutationOp<MoleculeGenome> for KickMutator<'a> {
     where
         R: Rng + Sized,
     {
-        let mut mol = molecule_from_genome(&genome);
+        let mut mol = genome.to_molecule();
         let r: f64 = rng.gen_range(0.0, 1.0);
         let mol = if r < self.mutation_rate {
             info!("mutate molecule {:?}", mol.name);
@@ -269,7 +241,7 @@ impl<'a> MutationOp<MoleculeGenome> for KickMutator<'a> {
                 })
                 .expect("mutate molecule failed 2")
         };
-        molecule_to_genome(&mol.sorted())
+        mol.to_genome()
     }
 }
 
@@ -293,9 +265,9 @@ impl<'a> CrossoverOp<MoleculeGenome> for CutAndSpliceCrossBreeder<'a> {
     where
         R: Rng + Sized,
     {
-        info!("breed using crossover ...");
-        let mol1 = molecule_from_genome(&parents[0]).sorted();
-        let mol2 = molecule_from_genome(&parents[1]).sorted();
+        let mol1 = parents[0].to_molecule();
+        let mol2 = parents[1].to_molecule();
+        info!("breed using crossover {} + {}.", mol1.name, mol2.name);
         let mut mol = spdkit::plane_cut_and_splice(&mol1, &mol2).expect("cut-and-splice failed");
 
         // avoid bad geometry which will cause opt failure
@@ -307,7 +279,7 @@ impl<'a> CrossoverOp<MoleculeGenome> for CutAndSpliceCrossBreeder<'a> {
                 e
             })
             .expect("crossover opt");
-        let g = molecule_to_genome(&mol.sorted());
+        let g = mol.to_genome();
 
         vec![g]
     }
@@ -329,8 +301,8 @@ pub fn genetic_search(config: &Config) -> Result<()> {
     feval.temperature = config.search.boltzmann_temperature;
     let algorithm = genetic_algorithm()
         .with_evaluation(feval.clone())
-        // .with_selection(RouletteWheelSelector::new(0.7, 2))
-        .with_selection(TournamentSelector::new(0.7, 2, 4, 1.0, true))
+        .with_selection(RouletteWheelSelector::new(0.7, 2))
+        // .with_selection(TournamentSelector::new(0.7, 2, 4, 1.0, true))
         .with_crossover(CutAndSpliceCrossBreeder {config: &config})
         .with_mutation(KickMutator {
             mutation_rate: mrate,
@@ -339,7 +311,7 @@ pub fn genetic_search(config: &Config) -> Result<()> {
         .with_reinsertion(ElitistReinserter::new(
             feval,
             false,
-            0.7,
+            0.2,
         ))
         .with_initial_population(initial_population)
         .build();
@@ -368,7 +340,7 @@ pub fn genetic_search(config: &Config) -> Result<()> {
                     .individuals()
                     .iter()
                     .zip(evaluated_population.fitness_values())
-                    .map(|(g, v)| molecule_from_genome(&g))
+                    .map(|(g, v)| g.to_molecule())
                     .collect();
 
                 if *average_fitness > old_fitness {

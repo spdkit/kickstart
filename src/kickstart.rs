@@ -93,8 +93,8 @@ pub fn kick(mol: &Molecule) -> Result<Molecule> {
     let mut radius = 8.0;
     loop {
         mols = kickstart(&mut mols, radius)?;
-        radius -= 0.2;
-        if radius < 1.5 {
+        radius -= 0.5;
+        if radius < 1.0 {
             break;
         }
     }
