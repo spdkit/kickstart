@@ -8,6 +8,7 @@ pub mod config;
 pub mod kickstart;
 pub mod search;
 pub mod search2;
+pub mod annealing;
 
 pub use crate::kickstart::kick;
 pub use crate::search::genetic_search;
