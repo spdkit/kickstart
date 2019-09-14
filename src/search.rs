@@ -289,6 +289,8 @@ impl<'a> CrossoverOp<MoleculeGenome> for CutAndSpliceCrossBreeder<'a> {
 // genetic
 
 // [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*genetic][genetic:1]]
+use crate::reinsert::*;
+
 // cluster structure search using genetic algorithm
 pub fn genetic_search(config: &Config) -> Result<()> {
     let mrate = config.search.mutation_rate;
@@ -308,7 +310,7 @@ pub fn genetic_search(config: &Config) -> Result<()> {
             mutation_rate: mrate,
             config: &config,
         })
-        .with_reinsertion(ElitistReinserter::new(
+        .with_reinsertion(MyElitistReinserter::new(
             feval,
             false,
             0.2,
