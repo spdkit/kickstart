@@ -7,27 +7,33 @@
 use quicli::prelude::*;
 use structopt::*;
 
-use kickstart::config::Config;
-
 /// Chemical structure explorer
 #[derive(Debug, StructOpt)]
 struct Cli {
     #[structopt(flatten)]
     verbosity: Verbosity,
 
-    /// configuration file for kickstart
-    #[structopt(help = "Configuration file in toml format", parse(from_os_str))]
-    configfile: std::path::PathBuf,
+    /// Prints default configuration.
+    #[structopt(long = "print", short = "p")]
+    print: bool,
+
+    /// Run genetic search.
+    #[structopt(long = "run", short = "r")]
+    run: bool,
 }
 
 fn main() -> CliResult {
     let args = Cli::from_args();
     args.verbosity.setup_env_logger(&env!("CARGO_PKG_NAME"))?;
 
-    let toml_str = read_file(args.configfile)?;
-    let config: Config = toml::from_str(&toml_str)?;
-
-    kickstart::genetic_search(&config)?;
+    if args.print {
+        println!("{:#^72}", " default configuration ");
+        kickstart::print_default_config();
+    } else if args.run {
+        kickstart::genetic_search()?;
+    } else {
+        Cli::clap().print_help()?;
+    }
 
     Ok(())
 }

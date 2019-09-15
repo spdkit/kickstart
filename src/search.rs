@@ -1,22 +1,41 @@
 // imports
 
 // [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*imports][imports:1]]
-use genevo::operator::prelude::*;
-use genevo::prelude::*;
-use genevo::types::fmt::Display;
+use crate::common::*;
+use crate::config::Config;
 
 use gosh::gchemol::prelude::*;
 use gosh::gchemol::{io, Atom, Molecule};
 
-use crate::common::*;
-use crate::config::Config;
-
-use crate::search2::*;
+use spdkit::prelude::*;
 // imports:1 ends here
 
-// model
+// base
 
-// [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*model][model:1]]
+// [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*base][base:1]]
+#[derive(Debug, Clone)]
+struct MolIndividual;
+
+/// The Genotype for molecule
+#[derive(Clone, Debug)]
+pub struct MolGenome {
+    name: String,
+    raw_score: Option<f64>,
+    data: Vec<(usize, [f64; 3])>,
+}
+
+impl std::fmt::Display for MolGenome {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::result::Result<(), std::fmt::Error> {
+        write!(f, "{:}", self.name)
+    }
+}
+
+impl spdkit::individual::Genome for MolGenome {}
+// base:1 ends here
+
+// bbm model
+
+// [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*bbm%20model][bbm model:1]]
 use gosh::models::*;
 
 /// Evaluate energy of molecule in current geometry
@@ -67,213 +86,130 @@ fn get_optimized_molecule(mol: &Molecule, runfile: &str) -> Result<Molecule> {
         }
     }
 }
-// model:1 ends here
+// bbm model:1 ends here
 
-// fitness
+// evaluate
 
-// [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*fitness][fitness:1]]
-// energy => fitness
-fn calc_fitness(energy: f64, eref: f64, temperature: f64) -> u32 {
-    let value = (energy - eref) * 96.;
-    let fitness = (-1.0 * value / (temperature * 0.0083145)).exp();
+// [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*evaluate][evaluate:1]]
+impl EvaluateObjectiveValue<MolGenome> for MolIndividual {
+    fn evaluate(&self, genome: &MolGenome) -> f64 {
+        let config = &crate::config::CONFIG;
 
-    (fitness * 1000.) as u32
+        let mol = genome.to_molecule();
+
+        if let Ok(energy) = get_energy(&mol, &config.runfile_opt) {
+            energy
+        } else {
+            warn!("no energy for {}", &mol.name);
+            std::f64::MAX
+        }
+    }
+}
+// evaluate:1 ends here
+
+// to_genome/to_molecule
+// genotype <=> phenotype转换
+
+// [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*to_genome/to_molecule][to_genome/to_molecule:1]]
+trait ToGenome {
+    fn to_genome(&self) -> MolGenome;
 }
 
-#[test]
-fn test_calc_fit() {
-    let x = -811.22008;
-    let x = calc_fitness(x, -811.2, 50000.);
-    dbg!(x);
+/// Create a random string of length `n` for naming a genome
+fn random_name(n: usize) -> String {
+    use rand::distributions::Alphanumeric;
+    use rand::{thread_rng, Rng};
+    let mut rng = thread_rng();
+    rng.sample_iter(&Alphanumeric).take(n).collect()
 }
 
-#[derive(Clone, Debug, PartialEq)]
-struct ClusterFitnessEvaluator<'a> {
-    temperature: f64,
-    runfile: &'a str,
-    eref: f64,
-}
+impl ToGenome for Molecule {
+    fn to_genome(&self) -> MolGenome {
+        let mut g = vec![];
+        for a in self.sorted().atoms() {
+            let n = a.number();
+            let p = a.position();
+            g.push((n, p));
+        }
 
-impl<'a> ClusterFitnessEvaluator<'a> {
-    fn new(runfile: &'a str, eref: f64) -> Self {
-        ClusterFitnessEvaluator {
-            runfile: &runfile,
-            eref: eref,
-            temperature: 20000.0,
+        MolGenome {
+            name: random_name(5),
+            data: g,
+            raw_score: None,
         }
     }
 }
 
-impl<'a> FitnessFunction<MoleculeGenome, u32> for ClusterFitnessEvaluator<'a> {
-    fn fitness_of(&self, individual: &MoleculeGenome) -> u32 {
-        let mol = individual.to_molecule();
+impl MolGenome {
+    fn to_molecule(&self) -> Molecule {
+        let mut mol = Molecule::new(&self.name);
 
-        // mapping energy to fitness
-        let fitness = {
-            if let Ok(energy) = get_energy(&mol, &self.runfile) {
-                let fitness = calc_fitness(energy, self.eref, self.temperature);
-                println!(
-                    "genome {:10} energy = {:-12.5} fitness= {}",
-                    mol.name, energy, fitness
-                );
-                fitness
-            } else {
-                warn!("no energy for {}", &mol.name);
-                self.lowest_possible_fitness()
-            }
-        };
+        for (n, [x, y, z]) in &self.data {
+            let a = Atom::build().element(*n).position(*x, *y, *z).finish();
+            mol.add_atom(a);
+        }
 
-        fitness
-    }
-
-    fn average(&self, fitness_values: &[u32]) -> u32 {
-        (fitness_values.iter().sum::<u32>() / fitness_values.len() as u32)
-    }
-
-    fn highest_possible_fitness(&self) -> u32 {
-        std::u32::MAX
-    }
-
-    fn lowest_possible_fitness(&self) -> u32 {
-        0
+        mol.rebond();
+        mol
     }
 }
-// fitness:1 ends here
+// to_genome/to_molecule:1 ends here
 
-// operators
+// initial population
 
-// [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*operators][operators:1]]
-use rand::prelude::*;
-
-use genevo::genetic::{Children, Genotype, Parents};
-use genevo::operator::prelude::*;
-use genevo::operator::{CrossoverOp, GeneticOperator, MutationOp};
-use genevo::prelude::*;
-use genevo::random::Rng;
-
-use crate::kick;
-use spdkit;
-
+// [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*initial%20population][initial population:1]]
 /// create a population with n individuals.
 /// initial molecule will be read from `molfile`
-fn get_population_and_eref(config: &Config) -> (Population<MoleculeGenome>, f64) {
+fn build_initial_population(config: &Config) -> Population<MolGenome> {
     info!("create initial population ..");
     let mol = Molecule::from_file(&config.molfile).expect("mol2");
-    let mut individuals = vec![];
     let n = config.search.population_size;
 
-    // get reference energy
-    let mut eref = std::f64::MAX;
+    let mut mol_genomes = vec![];
     for i in 0..n {
-        let mol = kick(&mol).expect("kick mol");
+        let mol = crate::kick(&mol).expect("kick mol");
         let mol = get_optimized_molecule(&mol, &config.runfile_opt).expect("opt mol");
         let e = get_energy(&mol, &config.runfile_sp).expect("sp energy");
-        if e < eref {
-            eref = e;
-        }
-        individuals.push(mol.to_genome());
+        mol_genomes.push(mol.to_genome());
     }
 
-    (Population::with_individuals(individuals), eref)
+    let indvs = MolIndividual.create(mol_genomes);
+
+    spdkit::population::Builder::new(spdkit::fitness::MinimizeEnergy::new(
+        config.search.boltzmann_temperature,
+    ))
+    .size_limit(n)
+    .build(indvs)
 }
+// initial population:1 ends here
 
-#[derive(Clone, Debug, PartialEq)]
-pub struct KickMutator<'a> {
-    mutation_rate: f64,
-    config: &'a Config,
-}
+// crossover
 
-impl<'a> KickMutator<'a> {
-    pub fn mutate_molecule(&self, mol: &mut Molecule, mutate: bool) -> Result<Molecule> {
-        use rand::seq::SliceRandom;
+// [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*crossover][crossover:1]]
+use spdkit::population::*;
 
-        if mutate {
-            let nbonds = mol.nbonds();
-            if nbonds > 0 {
-                // remove bonds randomly to break molecule into parts
-                let mut edges: Vec<_> = mol.bonds().map(|b| b.index()).collect();
-                let mut rng = thread_rng();
-                edges.shuffle(&mut rng);
-                let nremoved = nbonds.min(5).max(2);
-                let n = rng.gen_range(1, nremoved);
-                info!("will remove {} bonds ...", n);
-                for i in 0..n {
-                    mol.remove_bond(edges[i]);
-                }
-            } else {
-                warn!("molecule has no bonds!");
-            }
+#[derive(Debug, Clone)]
+struct CutAndSpliceCrossOver;
 
-            let mol = kick(&mol)?;
-            get_optimized_molecule(&mol, &self.config.runfile_opt)
-        } else {
-            Ok(mol.to_owned())
-        }
-    }
-}
-
-impl<'a> GeneticOperator for KickMutator<'a> {
-    fn name() -> String {
-        "Kickstart-Mutation".to_string()
-    }
-}
-
-impl<'a> MutationOp<MoleculeGenome> for KickMutator<'a> {
-    fn mutate<R>(&self, genome: MoleculeGenome, rng: &mut R) -> MoleculeGenome
-    where
-        R: Rng + Sized,
-    {
-        let mut mol = genome.to_molecule();
-        let r: f64 = rng.gen_range(0.0, 1.0);
-        let mol = if r < self.mutation_rate {
-            info!("mutate molecule {:?}", mol.name);
-            self.mutate_molecule(&mut mol, true)
-                .map_err(|e| {
-                    mol.to_file("/tmp/aa.mol2");
-                    e
-                })
-                .expect("mutate molecule failed 1")
-        } else {
-            self.mutate_molecule(&mut mol, false)
-                .map_err(|e| {
-                    mol.to_file("/tmp/bb.mol2");
-                    e
-                })
-                .expect("mutate molecule failed 2")
-        };
-        mol.to_genome()
-    }
-}
-
-#[derive(Clone, Debug, PartialEq)]
-pub struct CutAndSpliceCrossBreeder<'a> {
-    config: &'a Config,
-}
-
-impl<'a> GeneticOperator for CutAndSpliceCrossBreeder<'a> {
-    fn name() -> String {
-        "Cut-and-splice crossover".to_string()
-    }
-}
-
-impl<'a> CrossoverOp<MoleculeGenome> for CutAndSpliceCrossBreeder<'a> {
-    fn crossover<R>(
+impl VariationOperator<MolGenome> for CutAndSpliceCrossOver {
+    fn breed_from<R: Rng + Sized>(
         &self,
-        parents: Parents<MoleculeGenome>,
+        parents: &[Member<MolGenome>],
         rng: &mut R,
-    ) -> Children<MoleculeGenome>
-    where
-        R: Rng + Sized,
-    {
-        let mol1 = parents[0].to_molecule();
-        let mol2 = parents[1].to_molecule();
+    ) -> Vec<MolGenome> {
+        let config = &crate::config::CONFIG;
+
+        let mol1 = parents[0].genome().to_molecule();
+        let mol2 = parents[1].genome().to_molecule();
         info!("breed using crossover {} + {}.", mol1.name, mol2.name);
+
         let mut mol = spdkit::plane_cut_and_splice(&mol1, &mol2).expect("cut-and-splice failed");
 
         // avoid bad geometry which will cause opt failure
         mol.rebond();
         mol.clean().expect("clean");
-        let mol = get_optimized_molecule(&mol, &self.config.runfile_opt)
+
+        let mol = get_optimized_molecule(&mol, &config.runfile_opt)
             .map_err(|e| {
                 error!("{:?}", e);
                 e
@@ -284,95 +220,120 @@ impl<'a> CrossoverOp<MoleculeGenome> for CutAndSpliceCrossBreeder<'a> {
         vec![g]
     }
 }
-// operators:1 ends here
+// crossover:1 ends here
 
-// genetic
+// mutation
 
-// [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*genetic][genetic:1]]
-use crate::reinsert::*;
+// [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*mutation][mutation:1]]
+impl Mutate for MolGenome {
+    /// Mutate `n` bits randomly.
+    fn mutate<R: Rng + Sized>(&mut self, n: usize, rng: &mut R) {
+        let mutation_rate = crate::config::CONFIG.search.mutation_rate;
+
+        let mut mol = self.to_molecule();
+        let r: f64 = rng.gen_range(0.0, 1.0);
+        let mol = if r < mutation_rate {
+            info!("mutate molecule {:?}", mol.name);
+            mutate_molecule(&mut mol, true)
+                .map_err(|e| {
+                    mol.to_file("/tmp/aa.mol2");
+                    e
+                })
+                .expect("mutate molecule failed 1")
+        } else {
+            mutate_molecule(&mut mol, false)
+                .map_err(|e| {
+                    mol.to_file("/tmp/bb.mol2");
+                    e
+                })
+                .expect("mutate molecule failed 2")
+        };
+
+        *self = mol.to_genome();
+    }
+}
+
+fn mutate_molecule(mol: &mut Molecule, mutate: bool) -> Result<Molecule> {
+    let config = &crate::config::CONFIG;
+
+    if mutate {
+        let nbonds = mol.nbonds();
+        if nbonds > 0 {
+            // remove bonds randomly to break molecule into parts
+            let mut edges: Vec<_> = mol.bonds().map(|b| b.index()).collect();
+            let mut rng = thread_rng();
+            edges.shuffle(&mut rng);
+            let nremoved = nbonds.min(5).max(2);
+            let n = rng.gen_range(1, nremoved);
+            info!("will remove {} bonds ...", n);
+            for i in 0..n {
+                mol.remove_bond(edges[i]);
+            }
+        } else {
+            warn!("molecule has no bonds!");
+        }
+
+        let mol = crate::kick(&mol)?;
+        get_optimized_molecule(&mol, &config.runfile_opt)
+    } else {
+        Ok(mol.to_owned())
+    }
+}
+// mutation:1 ends here
+
+// genetic search
+
+// [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*genetic%20search][genetic search:1]]
+use spdkit::operators::selection::StochasticUniversalSampling as SusSelection;
 
 // cluster structure search using genetic algorithm
-pub fn genetic_search(config: &Config) -> Result<()> {
+pub fn genetic_search() -> Result<()> {
+    let config = &crate::config::CONFIG;
+
     let mrate = config.search.mutation_rate;
     info!("mutation rate: {}", mrate);
+    let initial_population = build_initial_population(&config);
 
-    let (initial_population, eref) = get_population_and_eref(&config);
+    // create a breeder for new individuals
+    let breeder = spdkit::gears::breeder::GeneticBreeder::new()
+        .with_selector(SusSelection::new(2))
+        .with_crossover(CutAndSpliceCrossOver);
 
-    info!("reference energy = {}", eref);
-    let mut feval = ClusterFitnessEvaluator::new(&config.runfile_sp, eref);
-    feval.temperature = config.search.boltzmann_temperature;
-    let algorithm = genetic_algorithm()
-        .with_evaluation(feval.clone())
-        .with_selection(RouletteWheelSelector::new(0.7, 2))
-        // .with_selection(TournamentSelector::new(0.7, 2, 4, 1.0, true))
-        .with_crossover(CutAndSpliceCrossBreeder {config: &config})
-        .with_mutation(KickMutator {
-            mutation_rate: mrate,
-            config: &config,
-        })
-        .with_reinsertion(MyElitistReinserter::new(
-            feval,
-            false,
-            0.2,
-        ))
-        .with_initial_population(initial_population)
-        .build();
+    // create evolution engine
+    let temperature = config.search.boltzmann_temperature;
+    let mut engine = Engine::new(initial_population)
+        .with_creator(MolIndividual)
+        .with_fitness(spdkit::fitness::MinimizeEnergy::new(temperature))
+        .with_breeder(breeder);
 
-    let ngen = config.search.max_generations;
-    let mut magcalc_sim = simulate(algorithm)
-        .until(GenerationLimit::new(ngen))
-        .build();
-
-    let mut i = 0;
-    let mut old_fitness = 0;
-    loop {
-        match magcalc_sim.step() {
-            Ok(SimResult::Intermediate(step)) => {
-                let evaluated_population = step.result.evaluated_population;
-                let average_fitness = evaluated_population.average_fitness();
-                let best_solution = step.result.best_solution;
-                let best_fitness = best_solution.solution.fitness;
-                println!(
-                    "Step: generation: {}, average_fitness: {}, \
-                     best fitness: {},",
-                    step.iteration, average_fitness, best_fitness
-                );
-
-                let mols: Vec<_> = evaluated_population
-                    .individuals()
-                    .iter()
-                    .zip(evaluated_population.fitness_values())
-                    .map(|(g, v)| g.to_molecule())
-                    .collect();
-
-                if *average_fitness > old_fitness {
-                    old_fitness = *average_fitness;
-                    i += 1;
-                    let ofile = format!("./g{:03}.xyz", i);
-                    io::write(ofile, &mols)?;
-                }
-            }
-            Ok(SimResult::Final(step, processing_time, duration, stop_reason)) => {
-                let best_solution = step.result.best_solution;
-                println!("{}", stop_reason);
-                println!(
-                    "Final result after {}: generation: {}, \
-                     best solution with fitness {} found in generation {}, processing_time: {}",
-                    duration.fmt(),
-                    step.iteration,
-                    best_solution.solution.fitness,
-                    best_solution.generation,
-                    processing_time.fmt()
-                );
-                break;
-            }
-            Err(e) => {
-                error!("{:?}", e);
+    // start the evolution loop
+    for g in engine.evolve().take(config.search.max_generations) {
+        let generation = g?;
+        generation.summary();
+        let energy = generation
+            .population
+            .best_member()
+            .unwrap()
+            .objective_value();
+        if let Some(target_energy) = config.search.target_energy {
+            if energy < target_energy {
+                println!("target energy {} reached.", target_energy);
                 break;
             }
         }
+
+        // write generation results
+        let mols: Vec<_> = generation
+            .population
+            .individuals()
+            .iter()
+            .map(|indv| indv.genome().to_molecule())
+            .collect();
+
+        let ofile = format!("./g{:03}.xyz", generation.index);
+        io::write(ofile, &mols)?;
     }
 
     Ok(())
 }
-// genetic:1 ends here
+// genetic search:1 ends here

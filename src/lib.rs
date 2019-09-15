@@ -4,15 +4,17 @@
 // :END:
 
 // [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*lib.rs][lib.rs:1]]
-pub mod config;
-pub mod kickstart;
-pub mod search;
-pub mod search2;
-pub mod annealing;
-pub mod reinsert;
+#[macro_use]
+extern crate lazy_static;
+
+mod search;
+mod config;
+mod kickstart;
+mod annealing;
 
 pub use crate::kickstart::kick;
 pub use crate::search::genetic_search;
+pub use crate::config::print_default_config;
 
 pub(crate) mod common {
     pub use quicli::prelude::*;
