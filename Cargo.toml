@@ -3,17 +3,17 @@
 # [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*cargo.toml][cargo.toml:1]]
 [package]
 name = "kickstart"
-version = "0.0.6"
+version = "0.0.7"
 edition = "2018"
 authors = ["Wenping Guo <ybyygu@gmail.com>"]
 
 [dependencies]
-rand = "0.6"
+rand = "0.7"
 quicli = "0.4"
 gosh = {path = "/home/ybyygu/Workspace/Programming/gosh-rs/gosh"}
 #gosh = {git = "https://github.com/gosh-rs/gosh.git", tag="v0.0.21"}
-#spdkit = { git = "https://github.com/spdkit/spdkit.git" }
 spdkit = { path = "../spdkit" }
+#spdkit = { git = "https://github.com/spdkit/spdkit.git" }
 structopt = "0.2"
 serde = {version="1.0", features = ["derive"]}
 serde_json = "1.0"
