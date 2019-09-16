@@ -10,7 +10,6 @@ extern crate lazy_static;
 mod search;
 mod config;
 mod kickstart;
-mod annealing;
 
 pub use crate::kickstart::kick;
 pub use crate::search::genetic_search;

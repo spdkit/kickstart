@@ -277,20 +277,23 @@ use spdkit::operators::selection::StochasticUniversalSampling as SusSelection;
 pub fn genetic_search() -> Result<()> {
     let config = &crate::config::CONFIG;
 
+    // create breeder gear
     let mrate = config.search.mutation_rate;
     info!("mutation rate: {}", mrate);
-
-    // create a breeder for new individuals
-    let breeder = spdkit::gears::breeder::GeneticBreeder::new()
+    let breeder = spdkit::GeneticBreeder::new()
         .with_selector(SusSelection::new(2))
         .with_crossover(CutAndSpliceCrossOver)
         .mutation_probability(mrate);
 
-    // create evolution engine
+    // create valuer gear
     let temperature = config.search.boltzmann_temperature;
-    let mut engine = Engine::new()
-        .with_creator(MolIndividual)
+    let valuer = spdkit::Valuer::new()
         .with_fitness(spdkit::fitness::MinimizeEnergy::new(temperature))
+        .with_creator(MolIndividual);
+
+    // create evolution engine
+    let mut engine = spdkit::Engine::new()
+        .with_valuer(valuer)
         .with_breeder(breeder);
 
     // start the evolution loop
