@@ -1,22 +1,26 @@
-// lib.rs
-// :PROPERTIES:
-// :header-args: :tangle src/lib.rs
-// :END:
+// mods
 
-// [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*lib.rs][lib.rs:1]]
+// [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*mods][mods:1]]
 #[macro_use]
 extern crate lazy_static;
 
-mod search;
 mod config;
 mod kickstart;
+mod search;
+mod crossover;
+// mods:1 ends here
 
+// exports
+
+// [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*exports][exports:1]]
+pub use gosh::gchemol;
+
+pub use crate::config::print_default_config;
 pub use crate::kickstart::kick;
 pub use crate::search::genetic_search;
-pub use crate::config::print_default_config;
 
 pub(crate) mod common {
     pub use quicli::prelude::*;
     pub type Result<T> = std::result::Result<T, Error>;
 }
-// lib.rs:1 ends here
+// exports:1 ends here

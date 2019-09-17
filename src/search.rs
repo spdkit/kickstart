@@ -173,7 +173,7 @@ impl VariationOperator<MolGenome> for CutAndSpliceCrossOver {
         let mol2 = parents[1].genome().decode();
         info!("breed using crossover {} + {}.", mol1.name, mol2.name);
 
-        let mut mol = spdkit::plane_cut_and_splice(&mol1, &mol2).expect("cut-and-splice failed");
+        let mut mol = crate::crossover::plane_cut_and_splice(&mol1, &mol2).expect("cut-and-splice failed");
 
         // avoid bad geometry which will cause opt failure
         mol.rebond();
