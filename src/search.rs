@@ -39,6 +39,7 @@ impl spdkit::individual::Genome for MolGenome {}
 impl EvaluateObjectiveValue<MolGenome> for MolIndividual {
     fn evaluate(&mut self, genome: &MolGenome) -> f64 {
         if let Ok(energy) = genome.decode().get_energy() {
+            info!("evaluated indv {}, energy = {:-12.5}", genome.name, energy);
             energy
         } else {
             warn!("no energy for {}", genome.name);
@@ -113,7 +114,7 @@ impl VariationOperator<MolGenome> for CutAndSpliceCrossOver {
 
         let mol1 = parents[0].genome().decode();
         let mol2 = parents[1].genome().decode();
-        info!("breed using crossover {} + {}.", mol1.name, mol2.name);
+        debug!("breeding using crossover {} + {}.", mol1.name, mol2.name);
 
         let mut mol =
             crate::crossover::plane_cut_and_splice(&mol1, &mol2).expect("cut-and-splice failed");
@@ -122,11 +123,15 @@ impl VariationOperator<MolGenome> for CutAndSpliceCrossOver {
         mol.rebond();
         mol.clean().expect("clean");
 
-        let mol = mol
-            .get_optimized_molecule()
-            .expect("crossover opt");
+        let mol = mol.get_optimized_molecule().expect("crossover opt");
 
-        vec![mol.encode()]
+        let g = mol.encode();
+        info!(
+            "bred new indv {}, parents: {} + {}",
+            g.name, mol1.name, mol2.name
+        );
+
+        vec![g]
     }
 }
 // crossover:1 ends here
@@ -137,28 +142,16 @@ impl VariationOperator<MolGenome> for CutAndSpliceCrossOver {
 impl Mutate for MolGenome {
     /// Mutate `n` bits randomly.
     fn mutate<R: Rng + Sized>(&mut self, n: usize, rng: &mut R) {
-        let mutation_rate = crate::config::CONFIG.search.mutation_rate;
-
         let mut mol = self.decode();
-        let r: f64 = rng.gen_range(0.0, 1.0);
-        let mol = if r < mutation_rate {
-            info!("mutate molecule {:?}", mol.name);
-            crate::mutation::mutate_molecule(&mut mol, true)
-                .map_err(|e| {
-                    mol.to_file("/tmp/aa.mol2");
-                    e
-                })
-                .expect("mutate molecule failed 1")
-        } else {
-            crate::mutation::mutate_molecule(&mut mol, false)
-                .map_err(|e| {
-                    mol.to_file("/tmp/bb.mol2");
-                    e
-                })
-                .expect("mutate molecule failed 2")
-        };
-
-        let mol = mol.get_optimized_molecule().expect("mutation opt");
+        info!("mutate molecule {:?}", self.name);
+        mol = crate::mutation::mutate_molecule(&mut mol)
+            .map_err(|e| {
+                mol.to_file("/tmp/aa.mol2");
+                e
+            })
+            .expect("mutate molecule failed 1")
+            .get_optimized_molecule()
+            .expect("mutation opt");
 
         *self = mol.encode();
     }

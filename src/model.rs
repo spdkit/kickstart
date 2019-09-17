@@ -37,7 +37,7 @@ fn get_energy(mol: &Molecule, runfile: &str) -> Result<f64> {
     let mr = bbm.compute(mol)?;
 
     if let Some(energy) = mr.energy {
-        debug!("sp energy = {:-12.5}", energy);
+        info!("sp energy = {:-12.5}", energy);
         return Ok(energy);
     } else {
         bail!("no energy record found in the output!");
