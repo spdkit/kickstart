@@ -3,6 +3,7 @@
 // [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*imports][imports:1]]
 use crate::common::*;
 use crate::config::Config;
+use crate::model::*;
 
 use gosh::gchemol::prelude::*;
 use gosh::gchemol::{io, Atom, Molecule};
@@ -32,74 +33,15 @@ impl std::fmt::Display for MolGenome {
 impl spdkit::individual::Genome for MolGenome {}
 // base:1 ends here
 
-// bbm model
-
-// [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*bbm%20model][bbm model:1]]
-use gosh::models::*;
-
-/// Evaluate energy of molecule in current geometry
-fn get_energy(mol: &Molecule, runfile: &str) -> Result<f64> {
-    debug!("calculate single point energy using bbm model ...");
-
-    let mut bbm = BlackBox::from_dir(runfile);
-    let mr = bbm.compute(mol)?;
-
-    if let Some(energy) = mr.energy {
-        debug!("sp energy = {:-12.5}", energy);
-        return Ok(energy);
-    } else {
-        bail!("no energy record found in the output!");
-    }
-}
-
-/// Return optimized geometry
-fn get_optimized_molecule(mol: &Molecule, runfile: &str) -> Result<Molecule> {
-    debug!("optimize geometry using bbm model ...");
-
-    // avoid bad geometry
-    let mut mol = mol.clone();
-    mol.rebond();
-    mol.clean()?;
-
-    let mut bbm = BlackBox::from_dir(runfile);
-
-    match bbm.compute(&mol) {
-        Ok(mr) => {
-            if let Some(energy) = mr.energy {
-                info!("opt energy = {:-12.5}", energy);
-                if let Some(mol) = mr.molecule {
-                    return Ok(mol);
-                } else {
-                    bail!("no molecule record found in bbm results");
-                }
-            } else {
-                bail!("no energy record found in the output!");
-            }
-        }
-
-        Err(e) => {
-            error!("opt failed, use initial geometry instead.");
-            error!("{:?}", e);
-
-            Ok(mol.to_owned())
-        }
-    }
-}
-// bbm model:1 ends here
-
 // evaluate
 
 // [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*evaluate][evaluate:1]]
 impl EvaluateObjectiveValue<MolGenome> for MolIndividual {
-    fn evaluate(&self, genome: &MolGenome) -> f64 {
-        let config = &crate::config::CONFIG;
-
-        let mol = genome.decode();
-
-        if let Ok(energy) = get_energy(&mol, &config.runfile_opt) {
+    fn evaluate(&mut self, genome: &MolGenome) -> f64 {
+        if let Ok(energy) = genome.decode().get_energy() {
             energy
         } else {
-            warn!("no energy for {}", &mol.name);
+            warn!("no energy for {}", genome.name);
             std::f64::MAX
         }
     }
@@ -173,14 +115,15 @@ impl VariationOperator<MolGenome> for CutAndSpliceCrossOver {
         let mol2 = parents[1].genome().decode();
         info!("breed using crossover {} + {}.", mol1.name, mol2.name);
 
-        let mut mol = crate::crossover::plane_cut_and_splice(&mol1, &mol2).expect("cut-and-splice failed");
+        let mut mol =
+            crate::crossover::plane_cut_and_splice(&mol1, &mol2).expect("cut-and-splice failed");
 
         // avoid bad geometry which will cause opt failure
         mol.rebond();
         mol.clean().expect("clean");
 
-        let mol = get_optimized_molecule(&mol, &config.runfile_opt)
-            .with_context(|e| format!("failed with error: {:?}", e))
+        let mol = mol
+            .get_optimized_molecule()
             .expect("crossover opt");
 
         vec![mol.encode()]
@@ -200,14 +143,14 @@ impl Mutate for MolGenome {
         let r: f64 = rng.gen_range(0.0, 1.0);
         let mol = if r < mutation_rate {
             info!("mutate molecule {:?}", mol.name);
-            mutate_molecule(&mut mol, true)
+            crate::mutation::mutate_molecule(&mut mol, true)
                 .map_err(|e| {
                     mol.to_file("/tmp/aa.mol2");
                     e
                 })
                 .expect("mutate molecule failed 1")
         } else {
-            mutate_molecule(&mut mol, false)
+            crate::mutation::mutate_molecule(&mut mol, false)
                 .map_err(|e| {
                     mol.to_file("/tmp/bb.mol2");
                     e
@@ -215,34 +158,9 @@ impl Mutate for MolGenome {
                 .expect("mutate molecule failed 2")
         };
 
+        let mol = mol.get_optimized_molecule().expect("mutation opt");
+
         *self = mol.encode();
-    }
-}
-
-fn mutate_molecule(mol: &mut Molecule, mutate: bool) -> Result<Molecule> {
-    let config = &crate::config::CONFIG;
-
-    if mutate {
-        let nbonds = mol.nbonds();
-        if nbonds > 0 {
-            // remove bonds randomly to break molecule into parts
-            let mut edges: Vec<_> = mol.bonds().map(|b| b.index()).collect();
-            let mut rng = thread_rng();
-            edges.shuffle(&mut rng);
-            let nremoved = nbonds.min(5).max(2);
-            let n = rng.gen_range(1, nremoved);
-            info!("will remove {} bonds ...", n);
-            for i in 0..n {
-                mol.remove_bond(edges[i]);
-            }
-        } else {
-            warn!("molecule has no bonds!");
-        }
-
-        let mol = crate::kick(&mol)?;
-        get_optimized_molecule(&mol, &config.runfile_opt)
-    } else {
-        Ok(mol.to_owned())
     }
 }
 // mutation:1 ends here
@@ -260,8 +178,7 @@ fn build_initial_genomes(config: &Config) -> Vec<MolGenome> {
     let mut mol_genomes = vec![];
     for i in 0..n {
         let mol = crate::kick(&mol).expect("kick mol");
-        let mol = get_optimized_molecule(&mol, &config.runfile_opt).expect("opt mol");
-        let e = get_energy(&mol, &config.runfile_sp).expect("sp energy");
+        let mol = mol.get_optimized_molecule().expect("opt mol");
         mol_genomes.push(mol.encode());
     }
     mol_genomes

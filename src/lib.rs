@@ -8,6 +8,8 @@ mod config;
 mod kickstart;
 mod search;
 mod crossover;
+mod mutation;
+mod model;
 // mods:1 ends here
 
 // exports
