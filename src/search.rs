@@ -120,8 +120,15 @@ impl VariationOperator<MolGenome> for CutAndSpliceCrossOver {
             crate::crossover::plane_cut_and_splice(&mol1, &mol2).expect("cut-and-splice failed");
 
         // avoid bad geometry which will cause opt failure
-        mol.rebond();
-        mol.clean().expect("clean");
+        // mol.rebond();
+        // mol.clean().expect("clean");
+        // mol.clean().expect("clean");
+        let mol = educate::educate_humble_structure(&mol)
+            .map_err(|e| {
+                eprintln!("failed to educate: {}", e);
+                e
+            })
+            .unwrap();
 
         let mol = mol.get_optimized_molecule().expect("crossover opt");
 
