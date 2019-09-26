@@ -93,7 +93,11 @@ fn kickstart(mut mols: &mut Vec<Molecule>, r: f64) -> Result<Vec<Molecule>> {
 
     Ok(mols)
 }
+// new:1 ends here
 
+// pub
+
+// [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*pub][pub:1]]
 // FIXME: read formula
 pub fn kick(mol: &Molecule) -> Result<Molecule> {
     let mut mols = mol.fragment();
@@ -117,7 +121,11 @@ pub fn kick(mol: &Molecule) -> Result<Molecule> {
 
     Ok(mol)
 }
+// pub:1 ends here
 
+// test
+
+// [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*test][test:1]]
 #[test]
 fn test_distribute() {
     use gosh::gchemol::prelude::*;
@@ -128,4 +136,4 @@ fn test_distribute() {
     assert_eq!(12, mol.natoms());
     mol.to_file("/tmp/k.mol2");
 }
-// new:1 ends here
+// test:1 ends here
