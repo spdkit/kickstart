@@ -10,6 +10,21 @@ use spdkit::random::*;
 use crate::common::*;
 // imports:1 ends here
 
+// random bond / new
+
+// [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*random%20bond%20/%20new][random bond / new:1]]
+// import Educate trait here
+use educate::prelude::*;
+
+pub(crate) fn random_bond_mutate(mol: &Molecule) -> Result<Molecule> {
+    let mut mol = educate::tmp_random_bond_mutate(mol);
+
+    mol.educated_clean();
+
+    Ok(mol)
+}
+// random bond / new:1 ends here
+
 pub(crate) fn mutate_molecule(mol: &Molecule) -> Result<Molecule> {
     let mut mol = mol.clone();
     let nbonds = mol.nbonds();
@@ -31,45 +46,11 @@ pub(crate) fn mutate_molecule(mol: &Molecule) -> Result<Molecule> {
     crate::kick(&mol)
 }
 
-// random bond
-
-// [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*random%20bond][random bond:1]]
-// import Educate trait here
-use educate::prelude::*;
-
-pub(crate) fn random_bond_mutate(mol: &Molecule) -> Result<Molecule> {
-    use gchemol::Bond;
-
-    // randomly bond a pair of atoms
-    let nodes: Vec<_> = mol.atoms().map(|a| a.index()).collect();
-
-    // choose two different nodes
-    let mut rng = thread_rng();
-    let mut random_choose_node = || nodes.choose(&mut rng).expect("no node");
-    let node1 = random_choose_node();
-    let connected: Vec<_> = mol.neighbors(*node1);
-
-    // avoid infinite loop
-    let mut node2 = random_choose_node();
-    assert!(nodes.len() >= 2);
-    // exclude current node and its neighboring nodes
-    while node1 == node2 || connected.contains(node2) {
-        node2 = random_choose_node();
-    }
-
-    let mut mol = mol.clone();
-    mol.add_bond(*node1, *node2, Bond::single());
-    // dbg!(node1, node2);
-    mol.educated_clean();
-
-    Ok(mol)
-}
-// random bond:1 ends here
-
 // test
 
 // [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*test][test:1]]
 #[test]
+#[ignore]
 fn test_rand_bond_mutate() -> Result<()> {
     let mol = Molecule::from_file("/tmp/test1.mol2")?;
 
