@@ -23,6 +23,8 @@ fn rotate_molecule(mol: &mut Molecule) -> Result<()> {
 }
 
 fn combine_fragments_into_one(fragments: &Vec<Molecule>) -> Molecule {
+    use educate::prelude::*;
+
     assert!(!fragments.is_empty(), "empty list of fragments!");
 
     let mut mol = Molecule::new("combined");
@@ -38,9 +40,6 @@ fn combine_fragments_into_one(fragments: &Vec<Molecule>) -> Molecule {
         mol.natoms()
     );
 
-    // perceive bonding connectivity
-    mol.rebond();
-
     // FIXME: handle NAN values in position
     let mut nan = false;
     for a in mol.atoms() {
@@ -50,13 +49,9 @@ fn combine_fragments_into_one(fragments: &Vec<Molecule>) -> Molecule {
         }
     }
 
-    // mol.clean().expect("clean");
-    let mol = educate::educate_humble_structure(&mol)
-        .map_err(|e| {
-            eprintln!("failed to educate: {}", e);
-            e
-        })
-        .unwrap();
+    mol.educate().with_context(|_| {
+        format!("failed to educate")
+    }).unwrap();
 
     mol
 }

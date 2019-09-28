@@ -50,9 +50,6 @@ fn get_optimized_molecule(mol: &Molecule, runfile: &str) -> Result<Molecule> {
 
     // avoid bad geometry
     let mut mol = mol.clone();
-    mol.rebond();
-    mol.clean()?;
-
     let mut bbm = BlackBox::from_dir(runfile);
 
     match bbm.compute(&mol) {

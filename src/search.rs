@@ -83,6 +83,8 @@ impl ToGenome for Molecule {
 
 impl MolGenome {
     fn decode(&self) -> Molecule {
+        use educate::prelude::*;
+
         let mut mol = Molecule::new(&self.name);
 
         for (n, [x, y, z]) in &self.data {
@@ -90,7 +92,7 @@ impl MolGenome {
             mol.add_atom(a);
         }
 
-        mol.rebond();
+        mol.educated_rebond().unwrap();
         mol
     }
 }
@@ -110,6 +112,8 @@ impl VariationOperator<MolGenome> for CutAndSpliceCrossOver {
         parents: &[Member<MolGenome>],
         rng: &mut R,
     ) -> Vec<MolGenome> {
+        use educate::prelude::*;
+
         let config = &crate::config::CONFIG;
 
         let mol1 = parents[0].genome().decode();
@@ -121,13 +125,8 @@ impl VariationOperator<MolGenome> for CutAndSpliceCrossOver {
 
         // avoid bad geometry which will cause opt failure
         // mol.rebond();
-        // mol.clean().expect("clean");
-        // mol.clean().expect("clean");
-        let mol = educate::educate_humble_structure(&mol)
-            .map_err(|e| {
-                eprintln!("failed to educate: {}", e);
-                e
-            })
+        mol.educate()
+            .with_context(|_| format!("failed to educate"))
             .unwrap();
 
         let mol = mol.get_optimized_molecule().expect("crossover opt");
