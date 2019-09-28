@@ -150,12 +150,7 @@ impl Mutate for MolGenome {
     /// Mutate `n` bits randomly.
     fn mutate<R: Rng + Sized>(&mut self, n: usize, rng: &mut R) {
         let mut mol = self.decode();
-        info!("mutate molecule {:?}", self.name);
-        mol = crate::mutation::mutate_molecule(&mol)
-            .map_err(|e| {
-                mol.to_file("/tmp/aa.mol2");
-                e
-            })
+        mol = crate::mutation::random_bond_mutate(&mol)
             .expect("mutate molecule failed 1")
             .get_optimized_molecule()
             .expect("mutation opt");

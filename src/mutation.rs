@@ -37,7 +37,7 @@ pub(crate) fn mutate_molecule(mol: &Molecule) -> Result<Molecule> {
 // import Educate trait here
 use educate::prelude::*;
 
-fn random_bond_mutate(mol: &Molecule) -> Result<Molecule> {
+pub(crate) fn random_bond_mutate(mol: &Molecule) -> Result<Molecule> {
     use gchemol::Bond;
 
     // randomly bond a pair of atoms
@@ -59,7 +59,7 @@ fn random_bond_mutate(mol: &Molecule) -> Result<Molecule> {
 
     let mut mol = mol.clone();
     mol.add_bond(*node1, *node2, Bond::single());
-    dbg!(node1, node2);
+    // dbg!(node1, node2);
     mol.educated_clean();
 
     Ok(mol)
@@ -70,7 +70,6 @@ fn random_bond_mutate(mol: &Molecule) -> Result<Molecule> {
 
 // [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*test][test:1]]
 #[test]
-#[ignore]
 fn test_rand_bond_mutate() -> Result<()> {
     let mol = Molecule::from_file("/tmp/test1.mol2")?;
 
