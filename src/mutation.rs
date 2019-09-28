@@ -34,6 +34,9 @@ pub(crate) fn mutate_molecule(mol: &Molecule) -> Result<Molecule> {
 // random bond
 
 // [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*random%20bond][random bond:1]]
+// import Educate trait here
+use educate::prelude::*;
+
 fn random_bond_mutate(mol: &Molecule) -> Result<Molecule> {
     use gchemol::Bond;
 
@@ -56,7 +59,24 @@ fn random_bond_mutate(mol: &Molecule) -> Result<Molecule> {
 
     let mut mol = mol.clone();
     mol.add_bond(*node1, *node2, Bond::single());
+    dbg!(node1, node2);
+    mol.educated_clean();
 
     Ok(mol)
 }
 // random bond:1 ends here
+
+// test
+
+// [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*test][test:1]]
+#[test]
+#[ignore]
+fn test_rand_bond_mutate() -> Result<()> {
+    let mol = Molecule::from_file("/tmp/test1.mol2")?;
+
+    let mols: Vec<_> = (0..10).map(|_| random_bond_mutate(&mol).unwrap()).collect();
+
+    gchemol::io::write("/tmp/a.mol2", &mols)?;
+    Ok(())
+}
+// test:1 ends here
