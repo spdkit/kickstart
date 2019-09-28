@@ -10,10 +10,8 @@ use spdkit::random::*;
 use crate::common::*;
 // imports:1 ends here
 
-// core
-
-// [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*core][core:1]]
-pub(crate) fn mutate_molecule(mol: &mut Molecule) -> Result<Molecule> {
+pub(crate) fn mutate_molecule(mol: &Molecule) -> Result<Molecule> {
+    let mut mol = mol.clone();
     let nbonds = mol.nbonds();
     if nbonds > 0 {
         // remove bonds randomly to break molecule into parts
@@ -32,4 +30,33 @@ pub(crate) fn mutate_molecule(mol: &mut Molecule) -> Result<Molecule> {
 
     crate::kick(&mol)
 }
-// core:1 ends here
+
+// random bond
+
+// [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*random%20bond][random bond:1]]
+fn random_bond_mutate(mol: &Molecule) -> Result<Molecule> {
+    use gchemol::Bond;
+
+    // randomly bond a pair of atoms
+    let nodes: Vec<_> = mol.atoms().map(|a| a.index()).collect();
+
+    // choose two different nodes
+    let mut rng = thread_rng();
+    let mut random_choose_node = || nodes.choose(&mut rng).expect("no node");
+    let node1 = random_choose_node();
+    let connected: Vec<_> = mol.neighbors(*node1);
+
+    // avoid infinite loop
+    let mut node2 = random_choose_node();
+    assert!(nodes.len() >= 2);
+    // exclude current node and its neighboring nodes
+    while node1 == node2 || connected.contains(node2) {
+        node2 = random_choose_node();
+    }
+
+    let mut mol = mol.clone();
+    mol.add_bond(*node1, *node2, Bond::single());
+
+    Ok(mol)
+}
+// random bond:1 ends here
