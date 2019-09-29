@@ -23,7 +23,7 @@ lazy_static! {
 // base
 
 // [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*base][base:1]]
-#[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Config {
     pub runfile_sp: String,
     pub runfile_opt: String,
@@ -31,13 +31,15 @@ pub struct Config {
     pub search: Search,
 }
 
-#[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
+#[derive(Debug, Serialize, Deserialize, Default)]
 pub struct Search {
     pub max_generations: usize,
     pub population_size: usize,
     pub boltzmann_temperature: f64,
     pub mutation_rate: f64,
     pub target_energy: Option<f64>,
+    /// the last geenrations for termination test
+    pub termination_nlast: Option<usize>,
 }
 
 impl Default for Config {
@@ -51,12 +53,13 @@ impl Default for Config {
                 max_generations: 10,
                 mutation_rate: 0.1,
                 boltzmann_temperature: 10000.0,
-                target_energy: None,
+                ..Default::default()
             },
         }
     }
 }
 
+/// Print default configuration.
 pub fn print_default_config() {
     let x = toml::to_string(&Config::default()).unwrap();
     println!("{:}", x);
