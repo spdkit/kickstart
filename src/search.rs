@@ -195,19 +195,30 @@ impl Breed<MolGenome> for HyperMutation {
         population: &Population<MolGenome>,
         rng: &mut R,
     ) -> Vec<MolGenome> {
-        let selector = SusSelection::new(2);
-        let crossover = CutAndSpliceCrossOver;
         // loop until required number of genomes
         let mut required_genomes = Vec::with_capacity(m);
         while required_genomes.len() < m {
+            // select 2 individuals as parents
+            let selector = SusSelection::new(2);
             let parents = selector.select_from(population, rng);
-            let new_genomes = crossover.breed_from(&parents, rng);
-            for mut g in new_genomes {
-                // mutate one bit/one point randomly.
-                if rng.gen_range(0.0, 1.0) < self.mut_prob {
-                    g.mutate(1, rng);
-                }
-                required_genomes.push(g);
+            info!("selected {} parents for hyper mutation.", parents.len());
+
+            for m in parents {
+                let old_genome = m.genome();
+                let old_score = m.objective_value();
+                info!(
+                    ">> Mutating parent {}, old_score = {}",
+                    old_genome.name, old_score
+                );
+
+                // start mutation
+                let mol = old_genome.decode();
+                let mol = crate::mutation::random_bond_mutate(&mol)
+                    .expect("mutate molecule failed")
+                    .get_optimized_molecule()
+                    .expect("mutation opt failed");
+
+                required_genomes.push(mol.encode());
             }
         }
 
@@ -216,9 +227,9 @@ impl Breed<MolGenome> for HyperMutation {
 }
 // breeder:1 ends here
 
-// genetic search
+// public
 
-// [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*genetic%20search][genetic search:1]]
+// [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*public][public:1]]
 use spdkit::operators::selection::StochasticUniversalSampling as SusSelection;
 
 // cluster structure search using genetic algorithm
@@ -280,4 +291,4 @@ pub fn genetic_search() -> Result<()> {
 
     Ok(())
 }
-// genetic search:1 ends here
+// public:1 ends here
