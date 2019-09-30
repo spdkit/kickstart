@@ -179,6 +179,43 @@ fn build_initial_genomes(config: &Config) -> Vec<MolGenome> {
 }
 // initial seeds:1 ends here
 
+// breeder
+
+// [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*breeder][breeder:1]]
+#[derive(Clone)]
+struct HyperMutation {
+    mut_prob: f64,
+}
+
+impl Breed<MolGenome> for HyperMutation {
+    /// Breed `m` new genomes from parent population.
+    fn breed<R: Rng + Sized>(
+        &mut self,
+        m: usize,
+        population: &Population<MolGenome>,
+        rng: &mut R,
+    ) -> Vec<MolGenome> {
+        let selector = SusSelection::new(2);
+        let crossover = CutAndSpliceCrossOver;
+        // loop until required number of genomes
+        let mut required_genomes = Vec::with_capacity(m);
+        while required_genomes.len() < m {
+            let parents = selector.select_from(population, rng);
+            let new_genomes = crossover.breed_from(&parents, rng);
+            for mut g in new_genomes {
+                // mutate one bit/one point randomly.
+                if rng.gen_range(0.0, 1.0) < self.mut_prob {
+                    g.mutate(1, rng);
+                }
+                required_genomes.push(g);
+            }
+        }
+
+        required_genomes
+    }
+}
+// breeder:1 ends here
+
 // genetic search
 
 // [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*genetic%20search][genetic search:1]]
@@ -191,10 +228,11 @@ pub fn genetic_search() -> Result<()> {
     // create breeder gear
     let mrate = config.search.mutation_rate;
     info!("mutation rate: {}", mrate);
-    let breeder = spdkit::GeneticBreeder::new()
-        .with_selector(SusSelection::new(2))
-        .with_crossover(CutAndSpliceCrossOver)
-        .mutation_probability(mrate);
+    // let breeder = spdkit::GeneticBreeder::new()
+    //     .with_selector(SusSelection::new(2))
+    //     .with_crossover(CutAndSpliceCrossOver)
+    //     .mutation_probability(mrate);
+    let breeder = HyperMutation { mut_prob: mrate };
 
     // create valuer gear
     let temperature = config.search.boltzmann_temperature;
