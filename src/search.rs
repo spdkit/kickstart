@@ -179,9 +179,57 @@ fn build_initial_genomes(config: &Config) -> Vec<MolGenome> {
 }
 // initial seeds:1 ends here
 
-// genetic search
+// breeder
 
-// [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*genetic%20search][genetic search:1]]
+// [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*breeder][breeder:1]]
+#[derive(Clone)]
+struct HyperMutation {
+    mut_prob: f64,
+}
+
+impl Breed<MolGenome> for HyperMutation {
+    /// Breed `m` new genomes from parent population.
+    fn breed<R: Rng + Sized>(
+        &mut self,
+        m: usize,
+        population: &Population<MolGenome>,
+        rng: &mut R,
+    ) -> Vec<MolGenome> {
+        // loop until required number of genomes
+        let mut required_genomes = Vec::with_capacity(m);
+        while required_genomes.len() < m {
+            // select 2 individuals as parents
+            let selector = SusSelection::new(2);
+            let parents = selector.select_from(population, rng);
+            info!("selected {} parents for hyper mutation.", parents.len());
+
+            for m in parents {
+                let old_genome = m.genome();
+                let old_score = m.objective_value();
+                info!(
+                    ">> Mutating parent {}, old_score = {}",
+                    old_genome.name, old_score
+                );
+
+                // start mutation
+                let mol = old_genome.decode();
+                let mol = crate::mutation::random_bond_mutate(&mol)
+                    .expect("mutate molecule failed")
+                    .get_optimized_molecule()
+                    .expect("mutation opt failed");
+
+                required_genomes.push(mol.encode());
+            }
+        }
+
+        required_genomes
+    }
+}
+// breeder:1 ends here
+
+// public
+
+// [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*public][public:1]]
 use spdkit::operators::selection::StochasticUniversalSampling as SusSelection;
 
 // cluster structure search using genetic algorithm
@@ -191,10 +239,11 @@ pub fn genetic_search() -> Result<()> {
     // create breeder gear
     let mrate = config.search.mutation_rate;
     info!("mutation rate: {}", mrate);
-    let breeder = spdkit::GeneticBreeder::new()
-        .with_selector(SusSelection::new(2))
-        .with_crossover(CutAndSpliceCrossOver)
-        .mutation_probability(mrate);
+    // let breeder = spdkit::GeneticBreeder::new()
+    //     .with_selector(SusSelection::new(2))
+    //     .with_crossover(CutAndSpliceCrossOver)
+    //     .mutation_probability(mrate);
+    let breeder = HyperMutation { mut_prob: mrate };
 
     // create valuer gear
     let temperature = config.search.boltzmann_temperature;
@@ -242,4 +291,4 @@ pub fn genetic_search() -> Result<()> {
 
     Ok(())
 }
-// genetic search:1 ends here
+// public:1 ends here
