@@ -206,6 +206,10 @@ pub fn genetic_search() -> Result<()> {
     let mut engine = spdkit::Engine::new()
         .with_valuer(valuer)
         .with_breeder(breeder);
+    if let Some(n) = config.search.termination_nlast {
+        println!("running mean termination: nlast = {}", n);
+        engine.set_termination_nlast(n);
+    };
 
     // start the evolution loop
     let seeds = build_initial_genomes(&config);
