@@ -163,10 +163,10 @@ impl Mutate for MolGenome {
 // [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*initial%20seeds][initial seeds:1]]
 /// create a population with n individuals.
 /// initial molecule will be read from `molfile`
-fn build_initial_genomes(config: &Config) -> Vec<MolGenome> {
+fn build_initial_genomes(config: &Config, n: Option<usize>) -> Vec<MolGenome> {
     info!("create initial population ..");
     let mol = Molecule::from_file(&config.molfile).expect("mol2");
-    let n = config.search.population_size;
+    let n = n.unwrap_or(config.search.population_size);
 
     let mut mol_genomes = vec![];
     for i in 0..n {
@@ -221,6 +221,11 @@ impl Breed<MolGenome> for HyperMutation {
             }
         }
 
+        // append randomly generated individuals
+        let config = &crate::config::CONFIG;
+        let random_gneomes = build_initial_genomes(&config, Some(5));
+        required_genomes.extend_from_slice(&random_gneomes);
+
         required_genomes
     }
 }
@@ -260,7 +265,7 @@ pub fn genetic_search() -> Result<()> {
     };
 
     // start the evolution loop
-    let seeds = build_initial_genomes(&config);
+    let seeds = build_initial_genomes(&config, None);
     for g in engine.evolve(&seeds).take(config.search.max_generations) {
         let generation = g?;
         generation.summary();
