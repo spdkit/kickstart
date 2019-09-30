@@ -16,10 +16,15 @@ use crate::common::*;
 // import Educate trait here
 use educate::prelude::*;
 
-pub fn random_bond_mutate(mol: &Molecule) -> Result<Molecule> {
-    let mol = educate::tmp_random_bond_mutate(mol);
+pub fn random_bond_mutate(mol: &Molecule, degree: usize) -> Result<Molecule> {
+    use crate::model::*;
 
-    Ok(mol)
+    let mut new_mol = mol.clone();
+    for _ in 0..degree {
+        new_mol = educate::tmp_random_bond_mutate(&new_mol);
+    }
+
+    Ok(new_mol)
 }
 // random bond:1 ends here
 
@@ -43,18 +48,3 @@ pub(crate) fn mutate_molecule(mol: &Molecule) -> Result<Molecule> {
 
     crate::kick(&mol)
 }
-
-// test
-
-// [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*test][test:1]]
-#[test]
-#[ignore]
-fn test_rand_bond_mutate() -> Result<()> {
-    let mol = Molecule::from_file("/tmp/test1.mol2")?;
-
-    let mols: Vec<_> = (0..10).map(|_| random_bond_mutate(&mol).unwrap()).collect();
-
-    gchemol::io::write("/tmp/a.mol2", &mols)?;
-    Ok(())
-}
-// test:1 ends here

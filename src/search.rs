@@ -148,12 +148,11 @@ impl VariationOperator<MolGenome> for CutAndSpliceCrossOver {
 impl Mutate for MolGenome {
     /// Mutate `n` bits randomly.
     fn mutate<R: Rng + Sized>(&mut self, n: usize, rng: &mut R) {
-        let mut mol = self.decode();
-        mol = crate::mutation::random_bond_mutate(&mol)
-            .expect("mutate molecule failed 1")
+        let mol = self.decode();
+        let mol = crate::mutation::random_bond_mutate(&mol, n)
+            .expect("mutate molecule failed")
             .get_optimized_molecule()
-            .expect("mutation opt");
-
+            .expect("mutation opt failed");
         *self = mol.encode();
     }
 }
@@ -213,7 +212,7 @@ impl Breed<MolGenome> for HyperMutation {
 
                 // start mutation
                 let mol = old_genome.decode();
-                let mol = crate::mutation::random_bond_mutate(&mol)
+                let mol = crate::mutation::random_bond_mutate(&mol, 1)
                     .expect("mutate molecule failed")
                     .get_optimized_molecule()
                     .expect("mutation opt failed");
