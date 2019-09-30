@@ -10,18 +10,18 @@ use spdkit::random::*;
 use crate::common::*;
 // imports:1 ends here
 
-// random bond / new
+// random bond
 
-// [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*random%20bond%20/%20new][random bond / new:1]]
+// [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*random%20bond][random bond:1]]
 // import Educate trait here
 use educate::prelude::*;
 
-pub(crate) fn random_bond_mutate(mol: &Molecule) -> Result<Molecule> {
+pub fn random_bond_mutate(mol: &Molecule) -> Result<Molecule> {
     let mol = educate::tmp_random_bond_mutate(mol);
 
     Ok(mol)
 }
-// random bond / new:1 ends here
+// random bond:1 ends here
 
 pub(crate) fn mutate_molecule(mol: &Molecule) -> Result<Molecule> {
     let mut mol = mol.clone();
@@ -48,6 +48,7 @@ pub(crate) fn mutate_molecule(mol: &Molecule) -> Result<Molecule> {
 
 // [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*test][test:1]]
 #[test]
+#[ignore]
 fn test_rand_bond_mutate() -> Result<()> {
     let mol = Molecule::from_file("/tmp/test1.mol2")?;
 

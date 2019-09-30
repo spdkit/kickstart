@@ -25,4 +25,8 @@ pub(crate) mod common {
     pub use quicli::prelude::*;
     pub type Result<T> = std::result::Result<T, Error>;
 }
+
+pub mod adhoc {
+    pub use crate::mutation::*;
+}
 // exports:1 ends here
