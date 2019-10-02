@@ -181,6 +181,8 @@ fn build_initial_genomes(config: &Config, n: Option<usize>) -> Vec<MolGenome> {
 // breeder
 
 // [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*breeder][breeder:1]]
+use spdkit::operators::selection::StochasticUniversalSampling as SusSelection;
+
 #[derive(Clone)]
 struct HyperMutation {
     mut_prob: f64,
@@ -231,11 +233,53 @@ impl Breed<MolGenome> for HyperMutation {
 }
 // breeder:1 ends here
 
+// survive
+
+// [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*survive][survive:1]]
+use spdkit::prelude::*;
+use spdkit::{Genome, Individual, Population};
+
+#[derive(Clone)]
+pub struct Survivor;
+
+impl Survive<MolGenome> for Survivor {
+    fn survive<R: Rng + Sized>(
+        &mut self,
+        population: Population<MolGenome>,
+        _rng: &mut R,
+    ) -> Vec<Individual<MolGenome>> {
+        // FIXME: adhoc hacking for removing duplicates, based on energy
+        // criterion only
+        let threshold = 0.01;
+
+        let n_old = population.size();
+        let mut members: Vec<_> = population.members().collect();
+        members.sort_by_fitness();
+
+        // FIXME: adhoc
+        let mut to_keep: Vec<_> = members.into_iter().enumerate().collect();
+        to_keep.dedup_by(|a, b| {
+            let (ma, mb) = (&a.1, &b.1);
+            let (va, vb) = (ma.objective_value(), mb.objective_value());
+            (va - vb).abs() < threshold
+        });
+        let n_remove = n_old - to_keep.len();
+        info!("removed {} duplicates", n_remove);
+
+        let mut indvs = vec![];
+        for p in to_keep.into_iter().take(population.size_limit()) {
+            let m = p.1;
+            indvs.push(m.individual.to_owned());
+        }
+
+        indvs
+    }
+}
+// survive:1 ends here
+
 // public
 
 // [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*public][public:1]]
-use spdkit::operators::selection::StochasticUniversalSampling as SusSelection;
-
 // cluster structure search using genetic algorithm
 pub fn genetic_search() -> Result<()> {
     let config = &crate::config::CONFIG;
@@ -243,10 +287,6 @@ pub fn genetic_search() -> Result<()> {
     // create breeder gear
     let mrate = config.search.mutation_rate;
     info!("mutation rate: {}", mrate);
-    // let breeder = spdkit::GeneticBreeder::new()
-    //     .with_selector(SusSelection::new(2))
-    //     .with_crossover(CutAndSpliceCrossOver)
-    //     .mutation_probability(mrate);
     let breeder = HyperMutation { mut_prob: mrate };
 
     // create valuer gear
@@ -255,10 +295,13 @@ pub fn genetic_search() -> Result<()> {
         .with_fitness(spdkit::fitness::MinimizeEnergy::new(temperature))
         .with_creator(MolIndividual);
 
+    let survivor = Survivor;
     // create evolution engine
     let mut engine = spdkit::Engine::new()
         .with_valuer(valuer)
-        .with_breeder(breeder);
+        .with_breeder(breeder)
+        .with_survivor(survivor);
+
     if let Some(n) = config.search.termination_nlast {
         println!("running mean termination: nlast = {}", n);
         engine.set_termination_nlast(n);
