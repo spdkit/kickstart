@@ -233,6 +233,103 @@ impl Breed<MolGenome> for HyperMutation {
 }
 // breeder:1 ends here
 
+// global search
+
+// [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*global%20search][global search:1]]
+fn global_add_new_genome() {
+    unimplemented!()
+}
+// global search:1 ends here
+
+// local search: variable depth search
+
+// [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*local%20search:%20variable%20depth%20search][local search: variable depth search:1]]
+/// Return the best MolGenome during local search neighbors from `old_genome`.
+fn variable_depth_search(old_genome: &MolGenome) -> MolGenome {
+    use spdkit::common::float_ordering_minimize;
+
+    use crate::model::*;
+
+    // search options
+    let search_width = 5;
+    let search_depth = 3;
+    let max_iterations = 10;
+
+    let iteration = || {
+        // start mutation
+        let mut mutated: Vec<_> = (0..search_width)
+            .map(|_| old_genome.mutated_with_energy())
+            .collect();
+        // take current best
+        mutated.sort_by(|a, b| float_ordering_minimize(&a.1, &b.1));
+        let best = &mutated[0].0;
+        mutated[0].clone()
+    };
+
+    let mut old_energy = old_genome.decode().energy();
+    println!("initial genome {} energy = {}", old_genome.name, old_energy);
+    let mut search_results = vec![(old_genome.clone(), old_energy)];
+    let mut istop = 0;
+    for icycle in 0.. {
+        println!("{:=^72}", "");
+        let (new_genome, new_energy) = iteration();
+        println!("current best: {} energy = {}", new_genome.name, new_energy);
+        if new_energy > old_energy {
+            istop += 1;
+        }
+        // reset stop flag when energy is decreasing
+        else {
+            istop = 0;
+        }
+
+        // stop iterations if situation get worse
+        if istop >= search_depth {
+            break;
+        }
+        old_energy = new_energy;
+        search_results.push((new_genome, new_energy));
+        if icycle >= max_iterations {
+            println!("Max allowed iteration reached.");
+            break;
+        }
+    }
+
+    // select the best one during search.
+    search_results.sort_by(|a, b| float_ordering_minimize(&a.1, &b.1));
+
+    let best = search_results.remove(0);
+    println!("final best: {} energy = {}", best.0.name, best.1);
+    best.0
+}
+
+impl MolGenome {
+    /// Return a mutated MolGenome using rand-bond-mutation algorithm.
+    fn mutated_with_energy(&self) -> (Self, f64) {
+        let mol = self.decode();
+        let mol = crate::mutation::random_bond_mutate(&mol, 1)
+            .expect("mutate molecule failed")
+            .get_optimized_molecule()
+            .expect("mutation opt failed");
+
+        let energy = mol.energy();
+        let genome = mol.encode();
+        println!("energy of {} = {}", genome.name, energy);
+        (genome, energy)
+    }
+}
+
+#[test]
+fn test_vds() -> Result<()> {
+    use gchemol::prelude::*;
+    use gosh::gchemol;
+
+    let mols = gchemol::io::read("/tmp/g000.xyz")?;
+    let ini_genome = mols[0].encode();
+    let _ = variable_depth_search(&ini_genome);
+    Ok(())
+}
+// local search: variable depth search:1 ends here
+
 // survive
 
 // [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*survive][survive:1]]

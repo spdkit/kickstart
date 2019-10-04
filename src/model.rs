@@ -13,6 +13,7 @@ use crate::common::*;
 
 // [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*core][core:1]]
 pub(crate) trait KickModel {
+    fn energy(&self) -> f64;
     fn get_energy(&self) -> Result<f64>;
     fn get_optimized_molecule(&self) -> Result<Molecule>;
 }
@@ -21,6 +22,14 @@ impl KickModel for Molecule {
     fn get_energy(&self) -> Result<f64> {
         let config = &crate::config::CONFIG;
         get_energy(&self, &config.runfile_sp)
+    }
+
+    fn energy(&self) -> f64 {
+        let config = &crate::config::CONFIG;
+        self.get_energy().unwrap_or_else(|e| {
+            warn!("found error during energy evaluation:\n {:?}", self.title());
+            std::f64::MAX
+        })
     }
 
     fn get_optimized_molecule(&self) -> Result<Molecule> {
