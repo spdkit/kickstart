@@ -181,6 +181,8 @@ fn build_initial_genomes(config: &Config, n: Option<usize>) -> Vec<MolGenome> {
 // breeder
 
 // [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*breeder][breeder:1]]
+use spdkit::operators::selection::StochasticUniversalSampling as SusSelection;
+
 #[derive(Clone)]
 struct HyperMutation {
     mut_prob: f64,
@@ -278,7 +280,6 @@ impl Survive<MolGenome> for Survivor {
 // public
 
 // [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*public][public:1]]
-// use spdkit::operators::selection::StochasticUniversalSampling as SusSelection;
 
 // cluster structure search using genetic algorithm
 pub fn genetic_search() -> Result<()> {
