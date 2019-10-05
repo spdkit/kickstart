@@ -9,6 +9,7 @@ use gosh::gchemol::prelude::*;
 use gosh::gchemol::{io, Atom, Molecule};
 
 use spdkit::prelude::*;
+use spdkit::*;
 // imports:1 ends here
 
 // base
@@ -233,6 +234,62 @@ impl Breed<MolGenome> for HyperMutation {
 }
 // breeder:1 ends here
 
+// evolve
+
+// [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*evolve][evolve:1]]
+struct MyAlgorithm {
+    //
+}
+
+impl Default for MyAlgorithm {
+    fn default() -> Self {
+        Self {
+            // --
+        }
+    }
+}
+
+impl<F, C> Evolve<MolGenome, F, C> for MyAlgorithm
+where
+    F: EvaluateFitness<MolGenome>,
+    C: EvaluateObjectiveValue<MolGenome>,
+{
+    fn next_generation(
+        &mut self,
+        cur_population: &Population<MolGenome>,
+        valuer: &mut Valuer<MolGenome, F, C>,
+    ) -> Population<MolGenome> {
+        evolve_core(cur_population, valuer)
+    }
+}
+
+fn evolve_core<F, C>(
+    cur_population: &Population<MolGenome>,
+    valuer: &mut Valuer<MolGenome, F, C>,
+) -> Population<MolGenome>
+where
+    F: EvaluateFitness<MolGenome>,
+    C: EvaluateObjectiveValue<MolGenome>,
+{
+    let mut rng = rand::thread_rng();
+    let selector = SusSelection::new(3);
+    let mut required_genomes = vec![];
+
+    while required_genomes.len() < cur_population.size_limit() {
+        // select the best from randomly (weighted by fitness) picked 3 members
+        let mut parents = selector.select_from(cur_population, &mut rng);
+        parents.sort_by_fitness();
+        let ini_genome = &parents[0].genome();
+
+        let new_genome = variable_depth_search(ini_genome);
+        required_genomes.push(new_genome);
+    }
+
+    let indvs = valuer.create_individuals(required_genomes);
+    valuer.build_population(indvs)
+}
+// evolve:1 ends here
+
 // global search
 // There are two approaches to create individuals in a gloabl sense:
 // 1. cut-and-splice crossover
@@ -388,22 +445,21 @@ impl Survive<MolGenome> for Survivor {
 pub fn genetic_search() -> Result<()> {
     let config = &crate::config::CONFIG;
 
-    // create breeder gear
-    let mrate = config.search.mutation_rate;
-    info!("mutation rate: {}", mrate);
-    let breeder = HyperMutation { mut_prob: mrate };
-
     // create valuer gear
     let temperature = config.search.boltzmann_temperature;
     let valuer = spdkit::Valuer::new()
         .with_fitness(spdkit::fitness::MinimizeEnergy::new(temperature))
         .with_creator(MolIndividual);
 
-    // create a survivor gear
-    let survivor = Survivor;
-
-    // setup the algorithm
-    let algo = spdkit::EvolutionAlgorithm::new(breeder, survivor);
+    // setup evolution algorithm
+    // create breeder gear
+    // let mrate = config.search.mutation_rate;
+    // info!("mutation rate: {}", mrate);
+    // let breeder = HyperMutation { mut_prob: mrate };
+    // // create a survivor gear
+    // let survivor = Survivor;
+    // let algo = spdkit::EvolutionAlgorithm::new(breeder, survivor);
+    let algo = MyAlgorithm::default();
 
     // create evolution engine
     let mut engine = spdkit::Engine::create().valuer(valuer).algorithm(algo);
