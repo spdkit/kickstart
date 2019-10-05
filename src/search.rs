@@ -234,10 +234,16 @@ impl Breed<MolGenome> for HyperMutation {
 // breeder:1 ends here
 
 // global search
+// There are two approaches to create individuals in a gloabl sense:
+// 1. cut-and-splice crossover
+// 2. random-kick (initial-seeds)
 
 // [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*global%20search][global search:1]]
-fn global_add_new_genome() {
-    unimplemented!()
+fn global_add_new_genome() -> Vec<MolGenome> {
+    // append randomly generated individuals
+    let config = &crate::config::CONFIG;
+    let random_gneomes = build_initial_genomes(&config, Some(5));
+    random_gneomes
 }
 // global search:1 ends here
 
@@ -319,6 +325,7 @@ impl MolGenome {
 }
 
 #[test]
+#[ignore]
 fn test_vds() -> Result<()> {
     use gchemol::prelude::*;
     use gosh::gchemol;
@@ -392,12 +399,14 @@ pub fn genetic_search() -> Result<()> {
         .with_fitness(spdkit::fitness::MinimizeEnergy::new(temperature))
         .with_creator(MolIndividual);
 
+    // create a survivor gear
     let survivor = Survivor;
+
+    // setup the algorithm
+    let algo = spdkit::EvolutionAlgorithm::new(breeder, survivor);
+
     // create evolution engine
-    let mut engine = spdkit::Engine::new()
-        .with_valuer(valuer)
-        .with_breeder(breeder)
-        .with_survivor(survivor);
+    let mut engine = spdkit::Engine::create().valuer(valuer).algorithm(algo);
 
     if let Some(n) = config.search.termination_nlast {
         println!("running mean termination: nlast = {}", n);
