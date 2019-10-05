@@ -286,7 +286,21 @@ where
     }
 
     let indvs = valuer.create_individuals(required_genomes);
-    valuer.build_population(indvs)
+    let population = valuer.build_population(indvs);
+    let (mut survived, n_removed) = get_survived_individuals(population);
+
+    if n_removed > 0 {
+        println!(
+            "removed {} duplicates, so add new indvs with random ones",
+            n_removed
+        );
+        let new_genomes = global_add_new_genomes(n_removed);
+        let new_indvs = valuer.create_individuals(new_genomes);
+        survived.extend_from_slice(&new_indvs);
+    }
+
+    assert_eq!(survived.len(), cur_population.size_limit());
+    valuer.build_population(survived)
 }
 // evolve:1 ends here
 
@@ -296,10 +310,10 @@ where
 // 2. random-kick (initial-seeds)
 
 // [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*global%20search][global search:1]]
-fn global_add_new_genome() -> Vec<MolGenome> {
+fn global_add_new_genomes(n: usize) -> Vec<MolGenome> {
     // append randomly generated individuals
     let config = &crate::config::CONFIG;
-    let random_gneomes = build_initial_genomes(&config, Some(5));
+    let random_gneomes = build_initial_genomes(&config, Some(n));
     random_gneomes
 }
 // global search:1 ends here
@@ -409,32 +423,38 @@ impl Survive<MolGenome> for Survivor {
         population: Population<MolGenome>,
         _rng: &mut R,
     ) -> Vec<Individual<MolGenome>> {
-        // FIXME: adhoc hacking for removing duplicates, based on energy
-        // criterion only
-        let threshold = 0.01;
-
-        let n_old = population.size();
-        let mut members: Vec<_> = population.members().collect();
-        members.sort_by_fitness();
-
-        // FIXME: adhoc
-        let mut to_keep: Vec<_> = members.into_iter().enumerate().collect();
-        to_keep.dedup_by(|a, b| {
-            let (ma, mb) = (&a.1, &b.1);
-            let (va, vb) = (ma.objective_value(), mb.objective_value());
-            (va - vb).abs() < threshold
-        });
-        let n_remove = n_old - to_keep.len();
-        info!("removed {} duplicates", n_remove);
-
-        let mut indvs = vec![];
-        for p in to_keep.into_iter().take(population.size_limit()) {
-            let m = p.1;
-            indvs.push(m.individual.to_owned());
-        }
-
-        indvs
+        get_survived_individuals(population).0
     }
+}
+
+fn get_survived_individuals(
+    population: Population<MolGenome>,
+) -> (Vec<Individual<MolGenome>>, usize) {
+    // FIXME: adhoc hacking for removing duplicates, based on energy
+    // criterion only
+    let threshold = 0.01;
+
+    let n_old = population.size();
+    let mut members: Vec<_> = population.members().collect();
+    members.sort_by_fitness();
+
+    // FIXME: adhoc
+    let mut to_keep: Vec<_> = members.into_iter().enumerate().collect();
+    to_keep.dedup_by(|a, b| {
+        let (ma, mb) = (&a.1, &b.1);
+        let (va, vb) = (ma.objective_value(), mb.objective_value());
+        (va - vb).abs() < threshold
+    });
+    let n_remove = n_old - to_keep.len();
+    info!("removed {} duplicates", n_remove);
+
+    let mut indvs = vec![];
+    for p in to_keep.into_iter().take(population.size_limit()) {
+        let m = p.1;
+        indvs.push(m.individual.to_owned());
+    }
+
+    (indvs, n_remove)
 }
 // survive:1 ends here
 
