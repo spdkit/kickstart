@@ -274,7 +274,7 @@ where
     // constants first
     let m = cur_population.size_limit();
     let n = cur_population.size();
-    let n_add_mutation = (n as f64 * 0.6) as usize;
+    let n_add_mutation = (n as f64 * 0.4) as usize;
 
     // FIXME: use a fraction of population size
     // let selector = spdkit::operators::selection::TournamentSelection::new(3);
@@ -286,6 +286,9 @@ where
     while required_genomes.len() < n_add_mutation {
         let parents = selector.select_from(cur_population, &mut rng);
         for p in parents {
+            if required_genomes.len() >= n_add_mutation {
+                break;
+            }
             let ini_genome = &p.genome();
             let new_genome = variable_depth_search(ini_genome);
             required_genomes.push(new_genome);
