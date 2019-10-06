@@ -46,7 +46,7 @@ fn get_energy(mol: &Molecule, runfile: &str) -> Result<f64> {
     let mr = bbm.compute(mol)?;
 
     if let Some(energy) = mr.energy {
-        info!("sp energy = {:-12.5}", energy);
+        debug!("sp energy = {:-12.5}", energy);
         return Ok(energy);
     } else {
         bail!("no energy record found in the output!");
@@ -64,7 +64,7 @@ fn get_optimized_molecule(mol: &Molecule, runfile: &str) -> Result<Molecule> {
     match bbm.compute(&mol) {
         Ok(mr) => {
             if let Some(energy) = mr.energy {
-                info!("opt energy = {:-12.5}", energy);
+                debug!("opt energy = {:-12.5}", energy);
                 if let Some(mol) = mr.molecule {
                     return Ok(mol);
                 } else {

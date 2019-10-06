@@ -271,30 +271,42 @@ where
     F: EvaluateFitness<MolGenome>,
     C: EvaluateObjectiveValue<MolGenome>,
 {
+    // constants first
+    let m = cur_population.size_limit();
+    let n = cur_population.size();
+    let n_add_mutation = (n as f64 * 0.6) as usize;
+
+    // FIXME: use a fraction of population size
+    // let selector = spdkit::operators::selection::TournamentSelection::new(3);
+
+    info!("Add {} genomes using mutation.", n_add_mutation);
+    let mut required_genomes = vec![];
     let mut rng = rand::thread_rng();
     let selector = SusSelection::new(3);
-    let mut required_genomes = vec![];
-
-    while required_genomes.len() < cur_population.size_limit() {
-        // select the best from randomly (weighted by fitness) picked 3 members
-        let mut parents = selector.select_from(cur_population, &mut rng);
-        parents.sort_by_fitness();
-        let ini_genome = &parents[0].genome();
-
-        let new_genome = variable_depth_search(ini_genome);
-        required_genomes.push(new_genome);
+    while required_genomes.len() < n_add_mutation {
+        let parents = selector.select_from(cur_population, &mut rng);
+        for p in parents {
+            let ini_genome = &p.genome();
+            let new_genome = variable_depth_search(ini_genome);
+            required_genomes.push(new_genome);
+        }
     }
 
-    let indvs = valuer.create_individuals(required_genomes);
-    let population = valuer.build_population(indvs);
-    let (mut survived, n_removed) = get_survived_individuals(population);
+    // create a new population from old population and new generated genomes
+    let old_genomes: Vec<_> = cur_population
+        .individuals()
+        .iter()
+        .map(|indv| indv.genome().to_owned())
+        .collect();
+    let all_genomes = [required_genomes, old_genomes].concat();
+    let indvs = valuer.create_individuals(all_genomes);
+    let population = valuer.build_population(indvs).with_size_limit(m);
+    let mut survived = get_survived_individuals(population);
 
-    if n_removed > 0 {
-        println!(
-            "removed {} duplicates, so add new indvs with random ones",
-            n_removed
-        );
-        let new_genomes = global_add_new_genomes(n_removed);
+    if survived.len() < m {
+        let k = m - survived.len();
+        println!("Add {} new indvs with random kick", k);
+        let new_genomes = global_add_new_genomes(k);
         let new_indvs = valuer.create_individuals(new_genomes);
         survived.extend_from_slice(&new_indvs);
     }
@@ -323,15 +335,15 @@ fn global_add_new_genomes(n: usize) -> Vec<MolGenome> {
 // [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*local%20search:%20variable%20depth%20search][local search: variable depth search:1]]
 /// Return the best MolGenome during local search neighbors from `old_genome`.
 fn variable_depth_search(old_genome: &MolGenome) -> MolGenome {
+    use crate::model::*;
     use spdkit::common::float_ordering_minimize;
 
-    use crate::model::*;
-
     // search options
-    let search_width = 5;
-    let search_depth = 3;
-    let max_iterations = 10;
+    let search_width = 3;
+    let search_depth = 2;
+    let max_iterations = 5;
 
+    // core iteration for vds
     let iteration = || {
         // start mutation
         let mut mutated: Vec<_> = (0..search_width)
@@ -343,14 +355,19 @@ fn variable_depth_search(old_genome: &MolGenome) -> MolGenome {
         mutated[0].clone()
     };
 
-    let mut old_energy = old_genome.decode().energy();
-    println!("initial genome {} energy = {}", old_genome.name, old_energy);
+    let ini_energy = old_genome.decode().energy();
+    let mut old_energy = ini_energy;
+    info!("initial genome {} energy = {}", old_genome.name, old_energy);
     let mut search_results = vec![(old_genome.clone(), old_energy)];
     let mut istop = 0;
     for icycle in 0.. {
-        println!("{:=^72}", "");
+        info!("{:=^72}", icycle);
         let (new_genome, new_energy) = iteration();
-        println!("current best: {} energy = {}", new_genome.name, new_energy);
+        info!(
+            "current best in {} candidates: {} energy = {}",
+            search_width, new_genome.name, new_energy
+        );
+
         if new_energy > old_energy {
             istop += 1;
         }
@@ -359,14 +376,14 @@ fn variable_depth_search(old_genome: &MolGenome) -> MolGenome {
             istop = 0;
         }
 
-        // stop iterations if situation get worse
+        // stop iterations when situation get worse
         if istop >= search_depth {
             break;
         }
         old_energy = new_energy;
         search_results.push((new_genome, new_energy));
         if icycle >= max_iterations {
-            println!("Max allowed iteration reached.");
+            info!("Max allowed iteration reached during vds.");
             break;
         }
     }
@@ -375,7 +392,10 @@ fn variable_depth_search(old_genome: &MolGenome) -> MolGenome {
     search_results.sort_by(|a, b| float_ordering_minimize(&a.1, &b.1));
 
     let best = search_results.remove(0);
-    println!("final best: {} energy = {}", best.0.name, best.1);
+    println!(
+        "vds result: {} => {}, {:-10.4} => {:-10.4} ",
+        old_genome.name, best.0.name, ini_energy, best.1,
+    );
     best.0
 }
 
@@ -390,7 +410,7 @@ impl MolGenome {
 
         let energy = mol.energy();
         let genome = mol.encode();
-        println!("energy of {} = {}", genome.name, energy);
+        debug!("mutant energy of {} = {}", genome.name, energy);
         (genome, energy)
     }
 }
@@ -423,13 +443,14 @@ impl Survive<MolGenome> for Survivor {
         population: Population<MolGenome>,
         _rng: &mut R,
     ) -> Vec<Individual<MolGenome>> {
-        get_survived_individuals(population).0
+        get_survived_individuals(population)
     }
 }
 
+/// remove dumplicates and weak individuals to fit population size limit.
 fn get_survived_individuals(
     population: Population<MolGenome>,
-) -> (Vec<Individual<MolGenome>>, usize) {
+) -> Vec<Individual<MolGenome>> {
     // FIXME: adhoc hacking for removing duplicates, based on energy
     // criterion only
     let threshold = 0.01;
@@ -454,7 +475,7 @@ fn get_survived_individuals(
         indvs.push(m.individual.to_owned());
     }
 
-    (indvs, n_remove)
+    indvs
 }
 // survive:1 ends here
 
