@@ -272,8 +272,10 @@ where
     C: EvaluateObjectiveValue<MolGenome>,
 {
     // constants first
+    let similarity_energy_threshold = 0.01; // in eV
     let m = cur_population.size_limit();
     let n = cur_population.size();
+    let p_add_random_global = 0.3;
     let n_add_mutation = (n as f64 * 0.4) as usize;
 
     // FIXME: use a fraction of population size
@@ -302,20 +304,19 @@ where
         .map(|indv| indv.genome().to_owned())
         .collect();
     let all_genomes = [required_genomes, old_genomes].concat();
-    let indvs = valuer.create_individuals(all_genomes);
-    let population = valuer.build_population(indvs).with_size_limit(m);
-    let mut survived = get_survived_individuals(population);
+    let mut all_indvs = valuer.create_individuals(all_genomes);
+    all_indvs.remove_duplicates_by_energy(similarity_energy_threshold);
 
-    if survived.len() < m {
-        let k = m - survived.len();
+    if all_indvs.len() < m {
+        let k = m - all_indvs.len();
         println!("Add {} new indvs with random kick", k);
         let new_genomes = global_add_new_genomes(k);
         let new_indvs = valuer.create_individuals(new_genomes);
-        survived.extend_from_slice(&new_indvs);
+        all_indvs.extend_from_slice(&new_indvs);
     }
 
-    assert_eq!(survived.len(), cur_population.size_limit());
-    valuer.build_population(survived)
+    assert_eq!(all_indvs.len(), cur_population.size_limit());
+    valuer.build_population(all_indvs)
 }
 // evolve:1 ends here
 
@@ -451,9 +452,7 @@ impl Survive<MolGenome> for Survivor {
 }
 
 /// remove dumplicates and weak individuals to fit population size limit.
-fn get_survived_individuals(
-    population: Population<MolGenome>,
-) -> Vec<Individual<MolGenome>> {
+fn get_survived_individuals(population: Population<MolGenome>) -> Vec<Individual<MolGenome>> {
     // FIXME: adhoc hacking for removing duplicates, based on energy
     // criterion only
     let threshold = 0.01;
@@ -479,6 +478,32 @@ fn get_survived_individuals(
     }
 
     indvs
+}
+
+trait RemoveDuplicates {
+    fn remove_duplicates_by_energy(&mut self, threshold: f64) -> usize;
+}
+
+// FIXME: adhoc hacking for removing duplicates, based on energy
+// criterion only
+impl RemoveDuplicates for Vec<Individual<MolGenome>> {
+    /// # Parameters
+    /// * threshold: energy diff threshold for similarity detection
+    ///
+    /// # Returns
+    /// * return the number of removed indvs
+    fn remove_duplicates_by_energy(&mut self, threshold: f64) -> usize {
+        use spdkit::common::float_ordering_minimize;
+
+        let n_old = self.len();
+        self.sort_by(|a, b| float_ordering_minimize(&a.objective_value(), &b.objective_value()));
+
+        // FIXME: adhoc
+        self.dedup_by(|a, b| (a.objective_value() - b.objective_value()).abs() < threshold);
+        let n_removed = n_old - self.len();
+        info!("Removed {} duplicates", n_removed);
+        n_removed
+    }
 }
 // survive:1 ends here
 
