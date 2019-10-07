@@ -275,12 +275,10 @@ where
     let similarity_energy_threshold = 0.01; // in eV
     let m = cur_population.size_limit();
     let n = cur_population.size();
-    let p_add_random_global = 0.3;
     let n_add_mutation = (n as f64 * 0.4) as usize;
 
     // FIXME: use a fraction of population size
     // let selector = spdkit::operators::selection::TournamentSelection::new(3);
-
     info!("Add {} genomes using mutation.", n_add_mutation);
     let mut required_genomes = vec![];
     let mut rng = rand::thread_rng();
@@ -305,18 +303,21 @@ where
         .collect();
     let all_genomes = [required_genomes, old_genomes].concat();
     let mut all_indvs = valuer.create_individuals(all_genomes);
+    // remove similar individuals
     all_indvs.remove_duplicates_by_energy(similarity_energy_threshold);
 
+    // Add new random genomes only when it really needs. This will reduce
+    // redudant calculations.
     if all_indvs.len() < m {
-        let k = m - all_indvs.len();
-        println!("Add {} new indvs with random kick", k);
-        let new_genomes = global_add_new_genomes(k);
+        let n_add_random = m - all_indvs.len();
+        // add random genomes as candicates in a global way
+        println!("Add {} new indvs with random kick", n_add_random);
+        let new_genomes = global_add_new_genomes(n_add_random);
         let new_indvs = valuer.create_individuals(new_genomes);
         all_indvs.extend_from_slice(&new_indvs);
     }
 
-    assert_eq!(all_indvs.len(), cur_population.size_limit());
-    valuer.build_population(all_indvs)
+    valuer.build_population(all_indvs[..m].to_vec())
 }
 // evolve:1 ends here
 
