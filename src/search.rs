@@ -9,6 +9,7 @@ use gosh::gchemol::prelude::*;
 use gosh::gchemol::{io, Atom, Molecule};
 
 use spdkit::prelude::*;
+use spdkit::*;
 // imports:1 ends here
 
 // base
@@ -233,6 +234,228 @@ impl Breed<MolGenome> for HyperMutation {
 }
 // breeder:1 ends here
 
+// evolve
+
+// [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*evolve][evolve:1]]
+struct MyAlgorithm {
+    //
+}
+
+impl Default for MyAlgorithm {
+    fn default() -> Self {
+        Self {
+            // --
+        }
+    }
+}
+
+impl<F, C> Evolve<MolGenome, F, C> for MyAlgorithm
+where
+    F: EvaluateFitness<MolGenome>,
+    C: EvaluateObjectiveValue<MolGenome>,
+{
+    fn next_generation(
+        &mut self,
+        cur_population: &Population<MolGenome>,
+        valuer: &mut Valuer<MolGenome, F, C>,
+    ) -> Population<MolGenome> {
+        evolve_core(cur_population, valuer)
+    }
+}
+
+fn evolve_core<F, C>(
+    cur_population: &Population<MolGenome>,
+    valuer: &mut Valuer<MolGenome, F, C>,
+) -> Population<MolGenome>
+where
+    F: EvaluateFitness<MolGenome>,
+    C: EvaluateObjectiveValue<MolGenome>,
+{
+    // constants first
+    let similarity_energy_threshold = 0.01; // in eV
+    let m = cur_population.size_limit();
+    let n = cur_population.size();
+    let p_add_total = 0.4;
+    let p_add_crossover = 0.5;
+
+    // let n_local_search = (n as f64 * 0.8) as usize;
+    let n_local_search = n;
+    info!("vds: select {} genomes for exploitation", n_local_search);
+    let mut required_genomes = vec![];
+    let mut rng = rand::thread_rng();
+    let selector = SusSelection::new(2);
+    while required_genomes.len() < n_local_search {
+        let parent =
+        // add new genome locally
+            if rng.gen::<f64>() < p_add_total {
+            let new_genome = global_add_new_genomes(1).pop().unwrap();
+            info!("candidate genome {}: randomly generated", new_genome.name);
+            new_genome
+        }
+        // add new genome globally
+        else {
+            let members = selector.select_from(cur_population, &mut rng);
+            let new_genome =
+            // global add using cut-and-splice crossover
+            if rng.gen::<f64>() < p_add_crossover {
+                let new_genome = CutAndSpliceCrossOver
+                    .breed_from(&members, &mut rng)
+                    .pop()
+                    .unwrap();
+                info!("candidate genome {}: cut-and-splice crossover", new_genome.name);
+                new_genome
+            }
+            // global add using random kick
+            else {
+                let new_genome = members[0].genome().to_owned();
+                info!("candidate genome {}: weighted selection", new_genome.name);
+                new_genome
+            };
+            let members = selector.select_from(cur_population, &mut rng);
+            new_genome
+        };
+        let new_genome = variable_depth_search(&parent);
+        required_genomes.push(new_genome);
+    }
+
+    // create a new population from old population and new generated genomes
+    let old_genomes: Vec<_> = cur_population
+        .individuals()
+        .iter()
+        .map(|indv| indv.genome().to_owned())
+        .collect();
+    let all_genomes = [required_genomes, old_genomes].concat();
+    let mut all_indvs = valuer.create_individuals(all_genomes);
+    // remove similar individuals
+    all_indvs.remove_duplicates_by_energy(similarity_energy_threshold);
+
+    // Add new random genomes only when it really needs. This will reduce
+    // redudant calculations.
+    if all_indvs.len() < m {
+        let n_add_random = m - all_indvs.len();
+        // add random genomes as candicates in a global way
+        println!("Add {} new indvs with random kick", n_add_random);
+        let new_genomes = global_add_new_genomes(n_add_random);
+        let new_indvs = valuer.create_individuals(new_genomes);
+        all_indvs.extend_from_slice(&new_indvs);
+    }
+
+    valuer.build_population(all_indvs[..m].to_vec())
+}
+// evolve:1 ends here
+
+// global search
+// There are two approaches to create individuals in a gloabl sense:
+// 1. cut-and-splice crossover
+// 2. random-kick (initial-seeds)
+
+// [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*global%20search][global search:1]]
+fn global_add_new_genomes(n: usize) -> Vec<MolGenome> {
+    // append randomly generated individuals
+    let config = &crate::config::CONFIG;
+    let random_gneomes = build_initial_genomes(&config, Some(n));
+    random_gneomes
+}
+// global search:1 ends here
+
+// local search: variable depth search
+
+// [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*local%20search:%20variable%20depth%20search][local search: variable depth search:1]]
+/// Return the best MolGenome during local search neighbors from `old_genome`.
+fn variable_depth_search(old_genome: &MolGenome) -> MolGenome {
+    use crate::model::*;
+    use spdkit::common::float_ordering_minimize;
+
+    // search options
+    let search_width = 3;
+    let search_depth = 3;
+    let max_iterations = 6;
+
+    // core iteration for vds
+    let iteration = || {
+        // start mutation
+        let mut mutated: Vec<_> = (0..search_width)
+            .map(|_| old_genome.mutated_with_energy())
+            .collect();
+        // take current best
+        mutated.sort_by(|a, b| float_ordering_minimize(&a.1, &b.1));
+        let best = &mutated[0].0;
+        mutated[0].clone()
+    };
+
+    let ini_energy = old_genome.decode().energy();
+    let mut old_energy = ini_energy;
+    info!("initial genome {} energy = {}", old_genome.name, old_energy);
+    let mut search_results = vec![(old_genome.clone(), old_energy)];
+    let mut istop = 0;
+    for icycle in 0.. {
+        info!("{:=^72}", format!(" vds iteration {} ", icycle));
+        let (new_genome, new_energy) = iteration();
+        info!(
+            "current best in {} candidates: {} energy = {}",
+            search_width, new_genome.name, new_energy
+        );
+
+        if new_energy > old_energy {
+            istop += 1;
+        }
+        // reset stop flag when energy is decreasing
+        else {
+            istop = 0;
+        }
+
+        // stop iterations when situation get worse
+        if istop >= search_depth {
+            break;
+        }
+        old_energy = new_energy;
+        search_results.push((new_genome, new_energy));
+        if icycle >= max_iterations {
+            info!("Max allowed iteration reached during vds.");
+            break;
+        }
+    }
+
+    // select the best one during search.
+    search_results.sort_by(|a, b| float_ordering_minimize(&a.1, &b.1));
+
+    let best = search_results.remove(0);
+    println!(
+        "vds result: {} => {}, {:-10.4} => {:-10.4} ",
+        old_genome.name, best.0.name, ini_energy, best.1,
+    );
+    best.0
+}
+
+impl MolGenome {
+    /// Return a mutated MolGenome using rand-bond-mutation algorithm.
+    fn mutated_with_energy(&self) -> (Self, f64) {
+        let mol = self.decode();
+        let mol = crate::mutation::random_bond_mutate(&mol, 1)
+            .expect("mutate molecule failed")
+            .get_optimized_molecule()
+            .expect("mutation opt failed");
+
+        let energy = mol.energy();
+        let genome = mol.encode();
+        debug!("mutant energy of {} = {}", genome.name, energy);
+        (genome, energy)
+    }
+}
+
+#[test]
+#[ignore]
+fn test_vds() -> Result<()> {
+    use gchemol::prelude::*;
+    use gosh::gchemol;
+
+    let mols = gchemol::io::read("/tmp/g000.xyz")?;
+    let ini_genome = mols[0].encode();
+    let _ = variable_depth_search(&ini_genome);
+    Ok(())
+}
+// local search: variable depth search:1 ends here
+
 // survive
 
 // [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*survive][survive:1]]
@@ -248,31 +471,62 @@ impl Survive<MolGenome> for Survivor {
         population: Population<MolGenome>,
         _rng: &mut R,
     ) -> Vec<Individual<MolGenome>> {
-        // FIXME: adhoc hacking for removing duplicates, based on energy
-        // criterion only
-        let threshold = 0.01;
+        get_survived_individuals(population)
+    }
+}
 
-        let n_old = population.size();
-        let mut members: Vec<_> = population.members().collect();
-        members.sort_by_fitness();
+/// remove dumplicates and weak individuals to fit population size limit.
+fn get_survived_individuals(population: Population<MolGenome>) -> Vec<Individual<MolGenome>> {
+    // FIXME: adhoc hacking for removing duplicates, based on energy
+    // criterion only
+    let threshold = 0.01;
+
+    let n_old = population.size();
+    let mut members: Vec<_> = population.members().collect();
+    members.sort_by_fitness();
+
+    // FIXME: adhoc
+    let mut to_keep: Vec<_> = members.into_iter().enumerate().collect();
+    to_keep.dedup_by(|a, b| {
+        let (ma, mb) = (&a.1, &b.1);
+        let (va, vb) = (ma.objective_value(), mb.objective_value());
+        (va - vb).abs() < threshold
+    });
+    let n_remove = n_old - to_keep.len();
+    info!("removed {} duplicates", n_remove);
+
+    let mut indvs = vec![];
+    for p in to_keep.into_iter().take(population.size_limit()) {
+        let m = p.1;
+        indvs.push(m.individual.to_owned());
+    }
+
+    indvs
+}
+
+trait RemoveDuplicates {
+    fn remove_duplicates_by_energy(&mut self, threshold: f64) -> usize;
+}
+
+// FIXME: adhoc hacking for removing duplicates, based on energy
+// criterion only
+impl RemoveDuplicates for Vec<Individual<MolGenome>> {
+    /// # Parameters
+    /// * threshold: energy diff threshold for similarity detection
+    ///
+    /// # Returns
+    /// * return the number of removed indvs
+    fn remove_duplicates_by_energy(&mut self, threshold: f64) -> usize {
+        use spdkit::common::float_ordering_minimize;
+
+        let n_old = self.len();
+        self.sort_by(|a, b| float_ordering_minimize(&a.objective_value(), &b.objective_value()));
 
         // FIXME: adhoc
-        let mut to_keep: Vec<_> = members.into_iter().enumerate().collect();
-        to_keep.dedup_by(|a, b| {
-            let (ma, mb) = (&a.1, &b.1);
-            let (va, vb) = (ma.objective_value(), mb.objective_value());
-            (va - vb).abs() < threshold
-        });
-        let n_remove = n_old - to_keep.len();
-        info!("removed {} duplicates", n_remove);
-
-        let mut indvs = vec![];
-        for p in to_keep.into_iter().take(population.size_limit()) {
-            let m = p.1;
-            indvs.push(m.individual.to_owned());
-        }
-
-        indvs
+        self.dedup_by(|a, b| (a.objective_value() - b.objective_value()).abs() < threshold);
+        let n_removed = n_old - self.len();
+        info!("Removed {} duplicates", n_removed);
+        n_removed
     }
 }
 // survive:1 ends here
@@ -285,23 +539,24 @@ impl Survive<MolGenome> for Survivor {
 pub fn genetic_search() -> Result<()> {
     let config = &crate::config::CONFIG;
 
-    // create breeder gear
-    let mrate = config.search.mutation_rate;
-    info!("mutation rate: {}", mrate);
-    let breeder = HyperMutation { mut_prob: mrate };
-
     // create valuer gear
     let temperature = config.search.boltzmann_temperature;
     let valuer = spdkit::Valuer::new()
         .with_fitness(spdkit::fitness::MinimizeEnergy::new(temperature))
         .with_creator(MolIndividual);
 
-    let survivor = Survivor;
+    // setup evolution algorithm
+    // create breeder gear
+    // let mrate = config.search.mutation_rate;
+    // info!("mutation rate: {}", mrate);
+    // let breeder = HyperMutation { mut_prob: mrate };
+    // // create a survivor gear
+    // let survivor = Survivor;
+    // let algo = spdkit::EvolutionAlgorithm::new(breeder, survivor);
+    let algo = MyAlgorithm::default();
+
     // create evolution engine
-    let mut engine = spdkit::Engine::new()
-        .with_valuer(valuer)
-        .with_breeder(breeder)
-        .with_survivor(survivor);
+    let mut engine = spdkit::Engine::create().valuer(valuer).algorithm(algo);
 
     if let Some(n) = config.search.termination_nlast {
         println!("running mean termination: nlast = {}", n);

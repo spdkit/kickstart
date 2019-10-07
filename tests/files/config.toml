@@ -1,6 +1,0 @@
-runfile_sp = "/share/apps/mopac/sp"
-runfile_opt = "/share/apps/mopac/opt"
-molfile = "c6h6.mol2"
-
-[search]
-max_generations = 30
