@@ -275,24 +275,27 @@ where
     let similarity_energy_threshold = 0.01; // in eV
     let m = cur_population.size_limit();
     let n = cur_population.size();
-    let n_add_mutation = (n as f64 * 0.4) as usize;
+    let p_add_global = 0.2;
+    let n_local_search = (n as f64 * 0.4) as usize;
 
-    // FIXME: use a fraction of population size
-    // let selector = spdkit::operators::selection::TournamentSelection::new(3);
-    info!("Add {} genomes using mutation.", n_add_mutation);
+    info!("vds: select {} genomes for exploitation", n_local_search);
     let mut required_genomes = vec![];
     let mut rng = rand::thread_rng();
-    let selector = SusSelection::new(3);
-    while required_genomes.len() < n_add_mutation {
-        let parents = selector.select_from(cur_population, &mut rng);
-        for p in parents {
-            if required_genomes.len() >= n_add_mutation {
-                break;
-            }
-            let ini_genome = &p.genome();
-            let new_genome = variable_depth_search(ini_genome);
-            required_genomes.push(new_genome);
-        }
+    let selector = SusSelection::new(1);
+    while required_genomes.len() < n_local_search {
+        // add one randomly generated genome
+        let parent = if rng.gen::<f64>() < p_add_global {
+            let new_genome = global_add_new_genomes(1).pop().unwrap();
+            info!("candidate genome {}: randomly generated", new_genome.name);
+            new_genome
+        } else {
+            let members = selector.select_from(cur_population, &mut rng);
+            let new_genome = members[0].genome().to_owned();
+            info!("candidate genome {}: weighted selection", new_genome.name);
+            new_genome
+        };
+        let new_genome = variable_depth_search(&parent);
+        required_genomes.push(new_genome);
     }
 
     // create a new population from old population and new generated genomes
@@ -366,7 +369,7 @@ fn variable_depth_search(old_genome: &MolGenome) -> MolGenome {
     let mut search_results = vec![(old_genome.clone(), old_energy)];
     let mut istop = 0;
     for icycle in 0.. {
-        info!("{:=^72}", icycle);
+        info!("{:=^72}", format!(" vds iteration {} ", icycle));
         let (new_genome, new_energy) = iteration();
         info!(
             "current best in {} candidates: {} energy = {}",
