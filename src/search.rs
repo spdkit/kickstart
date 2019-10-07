@@ -275,23 +275,43 @@ where
     let similarity_energy_threshold = 0.01; // in eV
     let m = cur_population.size_limit();
     let n = cur_population.size();
-    let p_add_global = 0.2;
-    let n_local_search = (n as f64 * 0.4) as usize;
+    let p_add_total = 0.4;
+    let p_add_crossover = 0.5;
 
+    // let n_local_search = (n as f64 * 0.8) as usize;
+    let n_local_search = n;
     info!("vds: select {} genomes for exploitation", n_local_search);
     let mut required_genomes = vec![];
     let mut rng = rand::thread_rng();
-    let selector = SusSelection::new(1);
+    let selector = SusSelection::new(2);
     while required_genomes.len() < n_local_search {
-        // add one randomly generated genome
-        let parent = if rng.gen::<f64>() < p_add_global {
+        let parent =
+        // add new genome locally
+            if rng.gen::<f64>() < p_add_total {
             let new_genome = global_add_new_genomes(1).pop().unwrap();
             info!("candidate genome {}: randomly generated", new_genome.name);
             new_genome
-        } else {
+        }
+        // add new genome globally
+        else {
             let members = selector.select_from(cur_population, &mut rng);
-            let new_genome = members[0].genome().to_owned();
-            info!("candidate genome {}: weighted selection", new_genome.name);
+            let new_genome =
+            // global add using cut-and-splice crossover
+            if rng.gen::<f64>() < p_add_crossover {
+                let new_genome = CutAndSpliceCrossOver
+                    .breed_from(&members, &mut rng)
+                    .pop()
+                    .unwrap();
+                info!("candidate genome {}: cut-and-splice crossover", new_genome.name);
+                new_genome
+            }
+            // global add using random kick
+            else {
+                let new_genome = members[0].genome().to_owned();
+                info!("candidate genome {}: weighted selection", new_genome.name);
+                new_genome
+            };
+            let members = selector.select_from(cur_population, &mut rng);
             new_genome
         };
         let new_genome = variable_depth_search(&parent);
