@@ -348,8 +348,8 @@ fn variable_depth_search(old_genome: &MolGenome) -> MolGenome {
 
     // search options
     let search_width = 3;
-    let search_depth = 2;
-    let max_iterations = 5;
+    let search_depth = 3;
+    let max_iterations = 6;
 
     // core iteration for vds
     let iteration = || {
