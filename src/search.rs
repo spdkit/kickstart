@@ -371,9 +371,9 @@ fn variable_depth_search(old_genome: &MolGenome) -> MolGenome {
     use spdkit::common::float_ordering_minimize;
 
     // search options
-    let search_width = 3;
+    let search_width = 5;
     let search_depth = 3;
-    let max_iterations = 6;
+    let max_iterations = 10;
 
     // core iteration for vds
     let iteration = || {
