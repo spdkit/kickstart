@@ -573,12 +573,6 @@ pub fn genetic_search() -> Result<()> {
             .best_member()
             .unwrap()
             .objective_value();
-        if let Some(target_energy) = config.search.target_energy {
-            if energy < target_energy {
-                println!("target energy {} reached.", target_energy);
-                break;
-            }
-        }
 
         // write generation results
         let mols: Vec<_> = generation
@@ -590,6 +584,14 @@ pub fn genetic_search() -> Result<()> {
 
         let ofile = format!("./g{:03}.xyz", generation.index);
         io::write(ofile, &mols)?;
+
+        if let Some(target_energy) = config.search.target_energy {
+            if energy < target_energy {
+                println!("target energy {} reached.", target_energy);
+                break;
+            }
+        }
+
     }
 
     Ok(())
