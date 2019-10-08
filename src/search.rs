@@ -281,13 +281,11 @@ where
     // let n_local_search = (n as f64 * 0.8) as usize;
     let n_local_search = n;
     info!("vds: select {} genomes for exploitation", n_local_search);
-    let mut required_genomes = vec![];
-    let mut rng = rand::thread_rng();
     let selector = SusSelection::new(2);
-    while required_genomes.len() < n_local_search {
-        let parent =
+    let mut next_parent = || {
+        let mut rng = rand::thread_rng();
         // add new genome locally
-            if rng.gen::<f64>() < p_add_total {
+        if rng.gen::<f64>() < p_add_total {
             let new_genome = global_add_new_genomes(1).pop().unwrap();
             info!("candidate genome {}: randomly generated", new_genome.name);
             new_genome
@@ -313,10 +311,16 @@ where
             };
             let members = selector.select_from(cur_population, &mut rng);
             new_genome
-        };
-        let new_genome = variable_depth_search(&parent);
-        required_genomes.push(new_genome);
-    }
+        }
+    };
+
+    let required_genomes: Vec<_> = (0..n_local_search)
+        .into_par_iter()
+        .map(|_| {
+            let parent = next_parent();
+            variable_depth_search(&parent)
+        })
+        .collect();
 
     // create a new population from old population and new generated genomes
     let old_genomes: Vec<_> = cur_population
@@ -388,6 +392,7 @@ fn variable_depth_search(old_genome: &MolGenome) -> MolGenome {
     info!("initial genome {} energy = {}", old_genome.name, old_energy);
     let mut search_results = vec![(old_genome.clone(), old_energy)];
     let mut istop = 0;
+
     for icycle in 0.. {
         info!("{:=^72}", format!(" vds iteration {} ", icycle));
         let (new_genome, new_energy) = iteration();
