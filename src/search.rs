@@ -234,120 +234,6 @@ impl Breed<MolGenome> for HyperMutation {
 }
 // breeder:1 ends here
 
-// evolve
-
-// [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*evolve][evolve:1]]
-struct MyAlgorithm {
-    //
-}
-
-impl Default for MyAlgorithm {
-    fn default() -> Self {
-        Self {
-            // --
-        }
-    }
-}
-
-impl<F, C> Evolve<MolGenome, F, C> for MyAlgorithm
-where
-    F: EvaluateFitness<MolGenome>,
-    C: EvaluateObjectiveValue<MolGenome>,
-{
-    fn next_generation(
-        &mut self,
-        cur_population: &Population<MolGenome>,
-        valuer: &mut Valuer<MolGenome, F, C>,
-    ) -> Population<MolGenome> {
-        evolve_core(cur_population, valuer)
-    }
-}
-
-fn evolve_core<F, C>(
-    cur_population: &Population<MolGenome>,
-    valuer: &mut Valuer<MolGenome, F, C>,
-) -> Population<MolGenome>
-where
-    F: EvaluateFitness<MolGenome>,
-    C: EvaluateObjectiveValue<MolGenome>,
-{
-    // constants first
-    let similarity_energy_threshold = 0.01; // in eV
-    let m = cur_population.size_limit();
-    let n = cur_population.size();
-    let p_add_total = 0.4;
-    let p_add_crossover = 0.5;
-
-    // let n_local_search = (n as f64 * 0.8) as usize;
-    let n_local_search = n;
-    info!("vds: select {} genomes for exploitation", n_local_search);
-    let selector = SusSelection::new(2);
-    let mut next_parent = || {
-        let mut rng = rand::thread_rng();
-        // add new genome locally
-        if rng.gen::<f64>() < p_add_total {
-            let new_genome = global_add_new_genomes(1).pop().unwrap();
-            info!("candidate genome {}: randomly generated", new_genome.name);
-            new_genome
-        }
-        // add new genome globally
-        else {
-            let members = selector.select_from(cur_population, &mut rng);
-            let new_genome =
-            // global add using cut-and-splice crossover
-            if rng.gen::<f64>() < p_add_crossover {
-                let new_genome = CutAndSpliceCrossOver
-                    .breed_from(&members, &mut rng)
-                    .pop()
-                    .unwrap();
-                info!("candidate genome {}: cut-and-splice crossover", new_genome.name);
-                new_genome
-            }
-            // global add using random kick
-            else {
-                let new_genome = members[0].genome().to_owned();
-                info!("candidate genome {}: weighted selection", new_genome.name);
-                new_genome
-            };
-            let members = selector.select_from(cur_population, &mut rng);
-            new_genome
-        }
-    };
-
-    let required_genomes: Vec<_> = (0..n_local_search)
-        .into_par_iter()
-        .map(|_| {
-            let parent = next_parent();
-            variable_depth_search(&parent)
-        })
-        .collect();
-
-    // create a new population from old population and new generated genomes
-    let old_genomes: Vec<_> = cur_population
-        .individuals()
-        .iter()
-        .map(|indv| indv.genome().to_owned())
-        .collect();
-    let all_genomes = [required_genomes, old_genomes].concat();
-    let mut all_indvs = valuer.create_individuals(all_genomes);
-    // remove similar individuals
-    all_indvs.remove_duplicates_by_energy(similarity_energy_threshold);
-
-    // Add new random genomes only when it really needs. This will reduce
-    // redudant calculations.
-    if all_indvs.len() < m {
-        let n_add_random = m - all_indvs.len();
-        // add random genomes as candicates in a global way
-        println!("Add {} new indvs with random kick", n_add_random);
-        let new_genomes = global_add_new_genomes(n_add_random);
-        let new_indvs = valuer.create_individuals(new_genomes);
-        all_indvs.extend_from_slice(&new_indvs);
-    }
-
-    valuer.build_population(all_indvs[..m].to_vec())
-}
-// evolve:1 ends here
-
 // global search
 // There are two approaches to create individuals in a gloabl sense:
 // 1. cut-and-splice crossover
@@ -379,6 +265,7 @@ fn variable_depth_search(old_genome: &MolGenome) -> MolGenome {
     let iteration = || {
         // start mutation
         let mut mutated: Vec<_> = (0..search_width)
+            .into_par_iter()
             .map(|_| old_genome.mutated_with_energy())
             .collect();
         // take current best
@@ -460,6 +347,120 @@ fn test_vds() -> Result<()> {
     Ok(())
 }
 // local search: variable depth search:1 ends here
+
+// evolve
+
+// [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*evolve][evolve:1]]
+struct MyAlgorithm {
+    //
+}
+
+impl Default for MyAlgorithm {
+    fn default() -> Self {
+        Self {
+            // --
+        }
+    }
+}
+
+impl<F, C> Evolve<MolGenome, F, C> for MyAlgorithm
+where
+    F: EvaluateFitness<MolGenome>,
+    C: EvaluateObjectiveValue<MolGenome>,
+{
+    fn next_generation(
+        &mut self,
+        cur_population: &Population<MolGenome>,
+        valuer: &mut Valuer<MolGenome, F, C>,
+    ) -> Population<MolGenome> {
+        evolve_core(cur_population, valuer)
+    }
+}
+
+fn evolve_core<F, C>(
+    cur_population: &Population<MolGenome>,
+    valuer: &mut Valuer<MolGenome, F, C>,
+) -> Population<MolGenome>
+where
+    F: EvaluateFitness<MolGenome>,
+    C: EvaluateObjectiveValue<MolGenome>,
+{
+    // constants first
+    let similarity_energy_threshold = 0.01; // in eV
+    let m = cur_population.size_limit();
+    let n = cur_population.size();
+    let p_add_global_kick = 0.2;
+    let p_add_global_crossover = 0.3;
+
+    // let n_local_search = (n as f64 * 0.8) as usize;
+    let n_local_search = n;
+    info!("vds: select {} genomes for exploitation", n_local_search);
+    let selector = SusSelection::new(2);
+    let mut next_parent = || {
+        let mut rng = rand::thread_rng();
+        // add new genome locally
+        if rng.gen::<f64>() < p_add_global_kick {
+            let new_genome = global_add_new_genomes(1).pop().unwrap();
+            info!("candidate genome {}: randomly generated", new_genome.name);
+            new_genome
+        }
+        // add new genome globally
+        else {
+            let members = selector.select_from(cur_population, &mut rng);
+            let new_genome =
+            // global add using cut-and-splice crossover
+            if rng.gen::<f64>() < p_add_global_crossover {
+                let new_genome = CutAndSpliceCrossOver
+                    .breed_from(&members, &mut rng)
+                    .pop()
+                    .unwrap();
+                info!("candidate genome {}: cut-and-splice crossover", new_genome.name);
+                new_genome
+            }
+            // global add using random kick
+            else {
+                let new_genome = members[0].genome().to_owned();
+                info!("candidate genome {}: weighted selection", new_genome.name);
+                new_genome
+            };
+            let members = selector.select_from(cur_population, &mut rng);
+            new_genome
+        }
+    };
+
+    let required_genomes: Vec<_> = (0..n_local_search)
+        .into_par_iter()
+        .map(|_| {
+            let parent = next_parent();
+            variable_depth_search(&parent)
+        })
+        .collect();
+
+    // create a new population from old population and new generated genomes
+    let old_genomes: Vec<_> = cur_population
+        .individuals()
+        .iter()
+        .map(|indv| indv.genome().to_owned())
+        .collect();
+    let all_genomes = [required_genomes, old_genomes].concat();
+    let mut all_indvs = valuer.create_individuals(all_genomes);
+    // remove similar individuals
+    all_indvs.remove_duplicates_by_energy(similarity_energy_threshold);
+
+    // Add new random genomes only when it really needs. This will reduce
+    // redudant calculations.
+    if all_indvs.len() < m {
+        let n_add_random = m - all_indvs.len();
+        // add random genomes as candicates in a global way
+        println!("Add {} new indvs with random kick", n_add_random);
+        let new_genomes = global_add_new_genomes(n_add_random);
+        let new_indvs = valuer.create_individuals(new_genomes);
+        all_indvs.extend_from_slice(&new_indvs);
+    }
+
+    valuer.build_population(all_indvs[..m].to_vec())
+}
+// evolve:1 ends here
 
 // survive
 
