@@ -3,36 +3,18 @@
 // [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*imports][imports:1]]
 use crate::common::*;
 use crate::config::Config;
+use crate::core::*;
+use crate::exploitation::*;
+use crate::exploration::*;
 use crate::model::*;
 
 use gosh::gchemol::prelude::*;
 use gosh::gchemol::{io, Atom, Molecule};
 
+use spdkit::operators::selection::StochasticUniversalSampling as SusSelection;
 use spdkit::prelude::*;
 use spdkit::*;
 // imports:1 ends here
-
-// base
-
-// [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*base][base:1]]
-#[derive(Debug, Clone)]
-struct MolIndividual;
-
-/// The Genotype for molecule
-#[derive(Clone, Debug)]
-struct MolGenome {
-    name: String,
-    data: Vec<(usize, [f64; 3])>,
-}
-
-impl std::fmt::Display for MolGenome {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::result::Result<(), std::fmt::Error> {
-        write!(f, "{:}", self.name)
-    }
-}
-
-impl spdkit::individual::Genome for MolGenome {}
-// base:1 ends here
 
 // evaluate
 
@@ -49,55 +31,6 @@ impl EvaluateObjectiveValue<MolGenome> for MolIndividual {
     }
 }
 // evaluate:1 ends here
-
-// genome/molecule mapping
-// genotype <=> phenotype conversion
-
-// [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*genome/molecule%20mapping][genome/molecule mapping:1]]
-trait ToGenome {
-    fn encode(&self) -> MolGenome;
-}
-
-/// Create a random string of length `n` for naming a genome
-fn random_name(n: usize) -> String {
-    use rand::distributions::Alphanumeric;
-    use rand::{thread_rng, Rng};
-    let mut rng = thread_rng();
-    rng.sample_iter(&Alphanumeric).take(n).collect()
-}
-
-impl ToGenome for Molecule {
-    fn encode(&self) -> MolGenome {
-        let mut g = vec![];
-        for a in self.sorted().atoms() {
-            let n = a.number();
-            let p = a.position();
-            g.push((n, p));
-        }
-
-        MolGenome {
-            name: random_name(5),
-            data: g,
-        }
-    }
-}
-
-impl MolGenome {
-    fn decode(&self) -> Molecule {
-        use educate::prelude::*;
-
-        let mut mol = Molecule::new(&self.name);
-
-        for (n, [x, y, z]) in &self.data {
-            let a = Atom::build().element(*n).position(*x, *y, *z).finish();
-            mol.add_atom(a);
-        }
-
-        mol.educated_rebond().unwrap();
-        mol
-    }
-}
-// genome/molecule mapping:1 ends here
 
 // crossover
 
@@ -159,196 +92,8 @@ impl Mutate for MolGenome {
 }
 // mutation:1 ends here
 
-// initial seeds
-
-// [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*initial%20seeds][initial seeds:1]]
-/// create a population with n individuals.
-/// initial molecule will be read from `molfile`
-fn build_initial_genomes(config: &Config, n: Option<usize>) -> Vec<MolGenome> {
-    info!("create initial population ..");
-    let mol = Molecule::from_file(&config.molfile).expect("mol2");
-    let n = n.unwrap_or(config.search.population_size);
-
-    let mut mol_genomes = vec![];
-    for i in 0..n {
-        let mol = crate::kick(&mol).expect("kick mol");
-        let mol = mol.get_optimized_molecule().expect("opt mol");
-        mol_genomes.push(mol.encode());
-    }
-    mol_genomes
-}
-// initial seeds:1 ends here
-
-// breeder
-
-// [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*breeder][breeder:1]]
-use spdkit::operators::selection::StochasticUniversalSampling as SusSelection;
-
-#[derive(Clone)]
-struct HyperMutation {
-    mut_prob: f64,
-}
-
-impl Breed<MolGenome> for HyperMutation {
-    /// Breed `m` new genomes from parent population.
-    fn breed<R: Rng + Sized>(
-        &mut self,
-        m: usize,
-        population: &Population<MolGenome>,
-        rng: &mut R,
-    ) -> Vec<MolGenome> {
-        // loop until required number of genomes
-        let mut required_genomes = Vec::with_capacity(m);
-        while required_genomes.len() < m {
-            // select 2 individuals as parents
-            let selector = SusSelection::new(2);
-            let parents = selector.select_from(population, rng);
-            info!("selected {} parents for hyper mutation.", parents.len());
-
-            for m in parents {
-                let old_genome = m.genome();
-                let old_score = m.objective_value();
-                info!(
-                    ">> Mutating parent {}, old_score = {}",
-                    old_genome.name, old_score
-                );
-
-                // start mutation
-                let mol = old_genome.decode();
-                let mol = crate::mutation::random_bond_mutate(&mol, 1)
-                    .expect("mutate molecule failed")
-                    .get_optimized_molecule()
-                    .expect("mutation opt failed");
-
-                required_genomes.push(mol.encode());
-            }
-        }
-
-        // append randomly generated individuals
-        let config = &crate::config::CONFIG;
-        let random_gneomes = build_initial_genomes(&config, Some(5));
-        required_genomes.extend_from_slice(&random_gneomes);
-
-        required_genomes
-    }
-}
-// breeder:1 ends here
-
-// global search
-// There are two approaches to create individuals in a gloabl sense:
-// 1. cut-and-splice crossover
-// 2. random-kick (initial-seeds)
-
-// [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*global%20search][global search:1]]
-fn global_add_new_genomes(n: usize) -> Vec<MolGenome> {
-    // append randomly generated individuals
-    let config = &crate::config::CONFIG;
-    let random_gneomes = build_initial_genomes(&config, Some(n));
-    random_gneomes
-}
-// global search:1 ends here
-
-// local search: variable depth search
-
-// [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*local%20search:%20variable%20depth%20search][local search: variable depth search:1]]
-/// Return the best MolGenome during local search neighbors from `old_genome`.
-fn variable_depth_search(old_genome: &MolGenome) -> MolGenome {
-    use crate::model::*;
-    use spdkit::common::float_ordering_minimize;
-
-    // search options
-    let search_width = 5;
-    let search_depth = 3;
-    let max_iterations = 10;
-
-    // core iteration for vds
-    let iteration = || {
-        // start mutation
-        let mut mutated: Vec<_> = (0..search_width)
-            .into_par_iter()
-            .map(|_| old_genome.mutated_with_energy())
-            .collect();
-        // take current best
-        mutated.sort_by(|a, b| float_ordering_minimize(&a.1, &b.1));
-        let best = &mutated[0].0;
-        mutated[0].clone()
-    };
-
-    let ini_energy = old_genome.decode().energy();
-    let mut old_energy = ini_energy;
-    info!("initial genome {} energy = {}", old_genome.name, old_energy);
-    let mut search_results = vec![(old_genome.clone(), old_energy)];
-    let mut istop = 0;
-
-    for icycle in 0.. {
-        info!("{:=^72}", format!(" vds iteration {} ", icycle));
-        let (new_genome, new_energy) = iteration();
-        info!(
-            "current best in {} candidates: {} energy = {}",
-            search_width, new_genome.name, new_energy
-        );
-
-        if new_energy > old_energy {
-            istop += 1;
-        }
-        // reset stop flag when energy is decreasing
-        else {
-            istop = 0;
-        }
-
-        // stop iterations when situation get worse
-        if istop >= search_depth {
-            break;
-        }
-        old_energy = new_energy;
-        search_results.push((new_genome, new_energy));
-        if icycle >= max_iterations {
-            info!("Max allowed iteration reached during vds.");
-            break;
-        }
-    }
-
-    // select the best one during search.
-    search_results.sort_by(|a, b| float_ordering_minimize(&a.1, &b.1));
-
-    let best = search_results.remove(0);
-    println!(
-        "vds result: {} => {}, {:-10.4} => {:-10.4} ",
-        old_genome.name, best.0.name, ini_energy, best.1,
-    );
-    best.0
-}
-
-impl MolGenome {
-    /// Return a mutated MolGenome using rand-bond-mutation algorithm.
-    fn mutated_with_energy(&self) -> (Self, f64) {
-        let mol = self.decode();
-        let mol = crate::mutation::random_bond_mutate(&mol, 1)
-            .expect("mutate molecule failed")
-            .get_optimized_molecule()
-            .expect("mutation opt failed");
-
-        let energy = mol.energy();
-        let genome = mol.encode();
-        debug!("mutant energy of {} = {}", genome.name, energy);
-        (genome, energy)
-    }
-}
-
-#[test]
-#[ignore]
-fn test_vds() -> Result<()> {
-    use gchemol::prelude::*;
-    use gosh::gchemol;
-
-    let mols = gchemol::io::read("/tmp/g000.xyz")?;
-    let ini_genome = mols[0].encode();
-    let _ = variable_depth_search(&ini_genome);
-    Ok(())
-}
-// local search: variable depth search:1 ends here
-
 // evolve
+// core part starts here
 
 // [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*evolve][evolve:1]]
 struct MyAlgorithm {
@@ -428,6 +173,7 @@ where
         }
     };
 
+    // vds exploitation in parallel
     let required_genomes: Vec<_> = (0..n_local_search)
         .into_par_iter()
         .map(|_| {
@@ -444,6 +190,7 @@ where
         .collect();
     let all_genomes = [required_genomes, old_genomes].concat();
     let mut all_indvs = valuer.create_individuals(all_genomes);
+
     // remove similar individuals
     all_indvs.remove_duplicates_by_energy(similarity_energy_threshold);
 
