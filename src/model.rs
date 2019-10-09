@@ -83,4 +83,16 @@ fn get_optimized_molecule(mol: &Molecule, runfile: &str) -> Result<Molecule> {
         }
     }
 }
+
+/// bundled calculation in a single job for a list of molecule
+fn get_optimized_molecules_bundle(mols: &[Molecule], runfile: &str) -> Result<Vec<Molecule>> {
+    debug!("opt geometries of {} molecules ...", mols.len());
+    let mut bbm = BlackBox::from_dir(runfile);
+
+    let all = bbm
+        .compute_bundle(mols)
+        .with_context(|e| format!("opt failed in bundle mode"))?;
+
+    unimplemented!()
+}
 // core:1 ends here

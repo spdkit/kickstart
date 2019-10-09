@@ -65,8 +65,8 @@ pub(crate) fn plane_cut_and_splice(mol1: &Molecule, mol2: &Molecule) -> Result<M
     loop {
         let (above1, below1, rotated1) = cut_molecule_by_rand_plane(&mol1);
         let (above2, below2, rotated2) = cut_molecule_by_rand_plane(&mol2);
-        debug!("above1 {:?}", above1);
-        debug!("below2 {:?}", below2);
+        trace!("above1 {:?}", above1);
+        trace!("below2 {:?}", below2);
         // check if number of atoms is correct
         if above1.len() + below2.len() == natoms {
             // check if element types is correct

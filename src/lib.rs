@@ -5,11 +5,14 @@
 extern crate lazy_static;
 
 mod config;
-mod kickstart;
-mod search;
+mod core;
 mod crossover;
-mod mutation;
+mod exploitation;
+mod exploration;
+mod kickstart;
 mod model;
+mod mutation;
+mod search;
 // mods:1 ends here
 
 // exports
@@ -24,6 +27,7 @@ pub use crate::search::genetic_search;
 pub(crate) mod common {
     pub use quicli::prelude::*;
     pub type Result<T> = std::result::Result<T, Error>;
+    pub use gosh::gchemol;
 }
 
 pub mod adhoc {
