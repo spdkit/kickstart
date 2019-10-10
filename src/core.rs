@@ -17,8 +17,8 @@ pub(crate) struct MolIndividual;
 /// The Genotype for molecule
 #[derive(Clone, Debug)]
 pub(crate) struct MolGenome {
-    pub(crate) name: String,
-    pub(crate) data: Vec<(usize, [f64; 3])>,
+    name: String,
+    data: Vec<(usize, [f64; 3])>,
 }
 
 impl std::fmt::Display for MolGenome {

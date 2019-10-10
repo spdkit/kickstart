@@ -22,10 +22,10 @@ use spdkit::*;
 impl EvaluateObjectiveValue<MolGenome> for MolIndividual {
     fn evaluate(&self, genome: &MolGenome) -> f64 {
         if let Ok(energy) = genome.decode().get_energy() {
-            info!("evaluated indv {}, energy = {:-12.5}", genome.name, energy);
+            info!("evaluated indv {}, energy = {:-12.5}", genome, energy);
             energy
         } else {
-            warn!("no energy for {}", genome.name);
+            warn!("no energy for {}", genome);
             std::f64::MAX
         }
     }
@@ -66,10 +66,7 @@ impl VariationOperator<MolGenome> for CutAndSpliceCrossOver {
         let mol = mol.get_optimized_molecule().expect("crossover opt");
 
         let g = mol.encode();
-        info!(
-            "bred new indv {}, parents: {} + {}",
-            g.name, mol1.name, mol2.name
-        );
+        info!("bred {}, parents: {} + {}", g, mol1.name, mol2.name);
 
         vec![g]
     }
@@ -146,7 +143,7 @@ where
         // add new genome locally
         if rng.gen::<f64>() < p_add_global_kick {
             let new_genome = global_add_new_genomes(1).pop().unwrap();
-            info!("candidate genome {}: randomly generated", new_genome.name);
+            info!("candidate genome {}: randomly generated", new_genome);
             new_genome
         }
         // add new genome globally
@@ -159,13 +156,13 @@ where
                     .breed_from(&members, &mut rng)
                     .pop()
                     .unwrap();
-                info!("candidate genome {}: cut-and-splice crossover", new_genome.name);
+                info!("candidate genome {}: cut-and-splice crossover", new_genome);
                 new_genome
             }
             // global add using random kick
             else {
                 let new_genome = members[0].genome().to_owned();
-                info!("candidate genome {}: weighted selection", new_genome.name);
+                info!("candidate genome {}: weighted selection", new_genome);
                 new_genome
             };
             let members = selector.select_from(cur_population, &mut rng);
