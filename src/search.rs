@@ -20,7 +20,7 @@ use spdkit::*;
 
 // [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*evaluate][evaluate:1]]
 impl EvaluateObjectiveValue<MolGenome> for MolIndividual {
-    fn evaluate(&mut self, genome: &MolGenome) -> f64 {
+    fn evaluate(&self, genome: &MolGenome) -> f64 {
         if let Ok(energy) = genome.decode().get_energy() {
             info!("evaluated indv {}, energy = {:-12.5}", genome.name, energy);
             energy
