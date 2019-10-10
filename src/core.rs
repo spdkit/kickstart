@@ -27,9 +27,9 @@ impl std::fmt::Display for MolGenome {
 impl spdkit::individual::Genome for MolGenome {}
 // genome:1 ends here
 
-// individual
+// evaluated genome
 
-// [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*individual][individual:1]]
+// [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*evaluated%20genome][evaluated genome:1]]
 /// The evaluated energy with molecule structure.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub(crate) struct EvaluatedGenome {
@@ -43,11 +43,22 @@ impl EvaluatedGenome {
         &self.genome.name
     }
 }
-// individual:1 ends here
 
-// database
+/// Convenient methods for accessing attributes
+impl EvaluatedGenome {
+    pub(crate) fn energy(&self) -> f64 {
+        self.energy
+    }
 
-// [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*database][database:1]]
+    pub(crate) fn genome(&self) -> &MolGenome {
+        &self.genome
+    }
+}
+// evaluated genome:1 ends here
+
+// base
+
+// [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*base][base:1]]
 use crate::database::KICKSTART_DB_CONNECTION as Db;
 
 use gosh_db::prelude::*;
@@ -57,25 +68,25 @@ impl Collection for EvaluatedGenome {
         "EvaluatedGenome".into()
     }
 }
+// base:1 ends here
 
-impl EvaluatedGenome {
-    /// Save calculated result into default database.
-    pub(crate) fn save_into_database(&self, genome: &MolGenome, energy: f64) -> Result<()> {
-        let key = &genome.name;
-        trace!("saving result with key {}", key);
-        self.put_into_collection(&Db, key)?;
+// evaluation
 
-        Ok(())
-    }
-}
-// database:1 ends here
+// [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*evaluation][evaluation:1]]
+// impl EvaluatedGenome {
+//     /// Save calculated result into default database.
+//     pub(crate) fn save_into_database(&self, genome: &MolGenome, energy: f64) -> Result<()> {
+//         let key = &genome.name;
+//         trace!("saving result with key {}", key);
+//         self.put_into_collection(&Db, key)?;
 
-// evaluate
+//         Ok(())
+//     }
+// }
 
-// [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*evaluate][evaluate:1]]
 impl EvaluateObjectiveValue<MolGenome> for CachedMolIndividual {
     fn evaluate(&self, genome: &MolGenome) -> f64 {
-        let evaluated = self.evaluate_dwim(genome).unwrap();
+        let evaluated = self.evaluate_genome(genome).unwrap();
         evaluated.energy
     }
 }
@@ -86,7 +97,7 @@ pub(crate) struct CachedMolIndividual;
 
 impl CachedMolIndividual {
     /// Evaluate with caching using database.
-    fn evaluate_dwim(&self, genome: &MolGenome) -> Result<EvaluatedGenome> {
+    fn evaluate_genome(&self, genome: &MolGenome) -> Result<EvaluatedGenome> {
         let key = &genome.name;
         match EvaluatedGenome::get_from_collection(&Db, key) {
             Ok(evaluated) => Ok(evaluated),
@@ -118,7 +129,7 @@ impl CachedMolIndividual {
         Ok(evaluated)
     }
 }
-// evaluate:1 ends here
+// evaluation:1 ends here
 
 // genome/molecule mapping
 // genotype <=> phenotype conversion

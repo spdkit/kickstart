@@ -49,4 +49,19 @@ pub(crate) fn global_add_new_genomes(n: usize) -> Vec<MolGenome> {
     let random_gneomes = build_initial_genomes(&config, Some(n));
     random_gneomes
 }
+
+/// Create `n` molecules in random configurations using kickstart algorithm
+///
+/// # Parameters
+///
+/// * parent_mol: initial molecule containing multiple fragments (based on connectivity)
+/// * n: the number of configurations to be generated
+///
+fn new_molecules_rand_kicked(parent_mol: &Molecule, n: usize) -> Vec<Molecule> {
+    info!("Creating {} molecules using kickstart.", n);
+    (0..n)
+        .into_par_iter()
+        .map(|_| crate::kick(&parent_mol).expect("kick parent_mol"))
+        .collect()
+}
 // exploration: global search:1 ends here

@@ -145,13 +145,13 @@ where
     let selector = SusSelection::new(2);
     let mut next_parent = || {
         let mut rng = rand::thread_rng();
-        // add new genome locally
+        // add new genome globally
         if rng.gen::<f64>() < p_add_global_kick {
             let new_genome = global_add_new_genomes(1).pop().unwrap();
             info!("candidate genome {}: randomly generated", new_genome);
             new_genome
         }
-        // add new genome globally
+        // add new genome globally based on crossover
         else {
             let members = selector.select_from(cur_population, &mut rng);
             let new_genome =
@@ -164,7 +164,7 @@ where
                 info!("candidate genome {}: cut-and-splice crossover", new_genome);
                 new_genome
             }
-            // global add using random kick
+            // add new genome locally using random kick
             else {
                 let new_genome = members[0].genome().to_owned();
                 info!("candidate genome {}: weighted selection", new_genome);
@@ -299,14 +299,6 @@ pub fn genetic_search() -> Result<()> {
         .with_fitness(spdkit::fitness::MinimizeEnergy::new(temperature))
         .with_creator(MolIndividual);
 
-    // setup evolution algorithm
-    // create breeder gear
-    // let mrate = config.search.mutation_rate;
-    // info!("mutation rate: {}", mrate);
-    // let breeder = HyperMutation { mut_prob: mrate };
-    // // create a survivor gear
-    // let survivor = Survivor;
-    // let algo = spdkit::EvolutionAlgorithm::new(breeder, survivor);
     let algo = MyAlgorithm::default();
 
     // create evolution engine
