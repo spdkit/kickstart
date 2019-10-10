@@ -11,7 +11,7 @@ use gosh_db::DbConnection;
 // [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*global][global:1]]
 // global database connection
 lazy_static! {
-    static ref KICKSTART_DB_CONNECTION: DbConnection = {
+    pub(crate) static ref KICKSTART_DB_CONNECTION: DbConnection = {
         let dbvar = "GOSH_DATABASE_URL";
         let default_db = format!("{}.db", env!("CARGO_PKG_NAME"));
         if std::env::var(dbvar).is_err() {

@@ -19,17 +19,22 @@ use spdkit::*;
 // evaluate
 
 // [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*evaluate][evaluate:1]]
-impl EvaluateObjectiveValue<MolGenome> for MolIndividual {
-    fn evaluate(&self, genome: &MolGenome) -> f64 {
-        if let Ok(energy) = genome.decode().get_energy() {
-            info!("evaluated indv {}, energy = {:-12.5}", genome, energy);
-            energy
-        } else {
-            warn!("no energy for {}", genome);
-            std::f64::MAX
-        }
-    }
-}
+// #[derive(Debug, Clone, Serialize, Deserialize)]
+// pub(crate) struct MolIndividual;
+
+// impl EvaluateObjectiveValue<MolGenome> for MolIndividual {
+//     fn evaluate(&self, genome: &MolGenome) -> f64 {
+//         if let Ok(energy) = genome.decode().get_energy() {
+//             info!("evaluated indv {}, energy = {:-12.5}", genome, energy);
+//             energy
+//         } else {
+//             warn!("no energy for {}", genome);
+//             std::f64::MAX
+//         }
+//     }
+// }
+
+use crate::core::CachedMolIndividual as MolIndividual;
 // evaluate:1 ends here
 
 // crossover
