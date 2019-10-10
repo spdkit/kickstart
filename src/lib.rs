@@ -7,6 +7,7 @@ extern crate lazy_static;
 mod config;
 mod core;
 mod crossover;
+mod database;
 mod exploitation;
 mod exploration;
 mod kickstart;

@@ -12,6 +12,7 @@ rand = "0.7"
 quicli = "0.4"
 gosh = {path = "/home/ybyygu/Workspace/Programming/gosh-rs/gosh"}
 #gosh = {git = "https://github.com/gosh-rs/gosh.git", tag="v0.0.22"}
+gosh-db = {version = "*", path = "../../gosh-rs/database"}
 spdkit = { path = "../spdkit" }
 #spdkit = { git = "https://github.com/spdkit/spdkit.git" }
 educate = { path = "../structure-education" }
