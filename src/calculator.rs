@@ -11,7 +11,7 @@ use crate::common::*;
 
 // [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*calculator][calculator:1]]
 pub(crate) struct Calculator {
-    bundled: bool,
+    bunch_mode: bool,
     bbm: BlackBox,
 }
 
@@ -20,14 +20,14 @@ impl Calculator {
     pub fn new(dir: &str) -> Self {
         let bbm = BlackBox::from_dir(dir);
         Self {
-            bundled: false,
+            bunch_mode: false,
             bbm,
         }
     }
 
     /// Return the calculated results using Black-Box Model.
     pub fn calculate(&mut self, mols: &[Molecule]) -> Result<Vec<ModelProperties>> {
-        let results: Vec<_> = if self.bundled {
+        let results: Vec<_> = if self.bunch_mode {
             self.bbm
                 .compute_bunch(mols)
                 .with_context(|e| format!("opt failed in bundle mode"))?
@@ -101,8 +101,8 @@ use crate::core::*;
 pub(crate) fn compute(mols: Vec<Molecule>) -> Result<Vec<ModelProperties>> {
     let config = &crate::config::CONFIG;
 
-    // FIXME: config optin for number of concurrent runners
-    let mut runner = Runner::new(2, &config.bbm_dir);
+    let n = config.number_of_calculators;
+    let mut runner = Runner::new(n, &config.bbm_dir);
     runner.compute(mols)
 }
 // public:1 ends here

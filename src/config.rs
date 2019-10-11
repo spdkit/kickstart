@@ -27,6 +27,8 @@ lazy_static! {
 pub struct Config {
     /// The path to BlackBox Model (bbm) directory.
     pub bbm_dir: String,
+    /// The number of calculators run in parallel
+    pub number_of_calculators: usize,
     /// The path to a file containing initial molecule with multiple fragments
     /// (based on connectivity)
     pub molfile: String,
@@ -50,6 +52,7 @@ impl Default for Config {
         Config {
             bbm_dir: "/share/apps/mopac/opt".into(),
             molfile: "test.mol2".into(),
+            number_of_calculators: 1,
             search: Search {
                 population_size: 10,
                 max_generations: 10,
