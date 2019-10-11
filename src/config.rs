@@ -25,9 +25,17 @@ lazy_static! {
 // [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*base][base:1]]
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Config {
-    pub runfile_sp: String,
-    pub runfile_opt: String,
+    /// The path to BlackBox Model (bbm) directory.
+    pub bbm_dir: String,
+    /// The number of calculators run in parallel
+    pub number_of_calculators: usize,
+    /// If run in bunch mode, a bunch of molecules will be put into a single
+    /// calculation, useful for cheap method such as force field.
+    pub run_in_bunch_mode: bool,
+    /// The path to a file containing initial molecule with multiple fragments
+    /// (based on connectivity)
     pub molfile: String,
+    /// Evolution search parameters
     pub search: Search,
 }
 
@@ -45,9 +53,10 @@ pub struct Search {
 impl Default for Config {
     fn default() -> Self {
         Config {
-            runfile_sp: "/share/apps/mopac/sp".into(),
-            runfile_opt: "/share/apps/mopac/opt".into(),
+            bbm_dir: "/share/apps/mopac/opt".into(),
             molfile: "test.mol2".into(),
+            number_of_calculators: 1,
+            run_in_bunch_mode: false,
             search: Search {
                 population_size: 10,
                 max_generations: 10,

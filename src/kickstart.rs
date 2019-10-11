@@ -34,7 +34,7 @@ fn combine_fragments_into_one(fragments: &Vec<Molecule>) -> Molecule {
             mol.add_atom(a.clone());
         }
     }
-    debug!(
+    trace!(
         "combined {} fragments, {} atoms.",
         fragments.len(),
         mol.natoms()
@@ -59,7 +59,7 @@ fn combine_fragments_into_one(fragments: &Vec<Molecule>) -> Molecule {
 fn generate_rand_fragments(fragments: &mut Vec<Molecule>, r: f64) -> Result<()> {
     let n = fragments.len();
     let pts = rand_points_within_sphere(r, n);
-    debug!("kick {:} fragments, radius = {:.2}", n, r);
+    trace!("kick {:} fragments, radius = {:.2}", n, r);
     for i in 0..n {
         let mut mol = &mut fragments[i];
         let positions = mol.positions();
@@ -96,7 +96,7 @@ fn kickstart(mut mols: &mut Vec<Molecule>, r: f64) -> Result<Vec<Molecule>> {
 // FIXME: read formula
 pub fn kick(mol: &Molecule) -> Result<Molecule> {
     let mut mols = mol.fragment();
-    debug!("kick {} fragments ...", mols.len());
+    trace!("kick {} fragments ...", mols.len());
     if mols.len() <= 1 {
         warn!("cannot break molecule into multiple parts!");
         return Ok(mol.to_owned());
@@ -115,6 +115,21 @@ pub fn kick(mol: &Molecule) -> Result<Molecule> {
     let mol = combine_fragments_into_one(&mols);
 
     Ok(mol)
+}
+
+/// Create `nbunch` molecules in random configurations using kickstart algorithm in parallel
+///
+/// # Parameters
+///
+/// * parent_mol: initial molecule containing multiple fragments (based on connectivity)
+/// * nbunch: the number of configurations to be generated
+///
+pub fn kick_bunch(parent_mol: &Molecule, nbunch: usize) -> Vec<Molecule> {
+    info!("Creating {} molecules using kickstart.", nbunch);
+    (0..nbunch)
+        .into_par_iter()
+        .map(|_| kick(&parent_mol).expect("kick parent_mol"))
+        .collect()
 }
 // pub:1 ends here
 
