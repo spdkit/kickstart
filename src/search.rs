@@ -200,6 +200,11 @@ impl RemoveDuplicates for Vec<Individual<MolGenome>> {
 // [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*public][public:1]]
 // cluster structure search using genetic algorithm
 pub fn genetic_search() -> Result<()> {
+    let pkg_version = env!("CARGO_PKG_VERSION");
+    let pkg_name = env!("CARGO_PKG_NAME");
+    let msg = format!(" {} v{} ", pkg_name, pkg_version);
+    println!("{:#^80}", msg);
+
     let config = &crate::config::CONFIG;
 
     // create valuer gear
