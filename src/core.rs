@@ -64,6 +64,13 @@ impl Collection for EvaluatedGenome {
     }
 }
 
+impl EvaluatedGenome {
+    // FIXME: performance
+    pub(crate) fn number_of_evaluations() -> usize {
+        Self::list_collection(&Db).expect("db: list failure").len()
+    }
+}
+
 impl MolGenome {
     /// Retrieve energy from db
     pub(crate) fn energy(&self) -> f64 {
@@ -168,5 +175,10 @@ impl ToGenome for ModelProperties {
 
         evaluated
     }
+}
+
+/// Return the number of evaluation of molecules
+pub(crate) fn get_number_of_evaluations() -> usize {
+    EvaluatedGenome::number_of_evaluations()
 }
 // public:1 ends here

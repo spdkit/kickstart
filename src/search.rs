@@ -247,6 +247,11 @@ pub fn genetic_search() -> Result<()> {
         }
     }
 
+    println!(
+        "Total number of evaluations during evolution: {}",
+        get_number_of_evaluations()
+    );
+
     Ok(())
 }
 
