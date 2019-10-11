@@ -29,6 +29,9 @@ pub struct Config {
     pub bbm_dir: String,
     /// The number of calculators run in parallel
     pub number_of_calculators: usize,
+    /// If run in bunch mode, a bunch of molecules will be put into a single
+    /// calculation, useful for cheap method such as force field.
+    pub run_in_bunch_mode: bool,
     /// The path to a file containing initial molecule with multiple fragments
     /// (based on connectivity)
     pub molfile: String,
@@ -53,6 +56,7 @@ impl Default for Config {
             bbm_dir: "/share/apps/mopac/opt".into(),
             molfile: "test.mol2".into(),
             number_of_calculators: 1,
+            run_in_bunch_mode: false,
             search: Search {
                 population_size: 10,
                 max_generations: 10,
