@@ -92,6 +92,21 @@ impl Runner {
 }
 // runner:1 ends here
 
+// public
+
+// [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*public][public:1]]
+use crate::core::*;
+
+/// setup a runner based on global config and compute a list of molecules.
+pub(crate) fn compute(mols: Vec<Molecule>) -> Result<Vec<ModelProperties>> {
+    let config = &crate::config::CONFIG;
+
+    // FIXME: config optin for number of concurrent runners
+    let mut runner = Runner::new(2, &config.bbm_dir);
+    runner.compute(mols)
+}
+// public:1 ends here
+
 // test
 
 // [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*test][test:1]]

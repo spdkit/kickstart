@@ -116,6 +116,21 @@ pub fn kick(mol: &Molecule) -> Result<Molecule> {
 
     Ok(mol)
 }
+
+/// Create `nbunch` molecules in random configurations using kickstart algorithm in parallel
+///
+/// # Parameters
+///
+/// * parent_mol: initial molecule containing multiple fragments (based on connectivity)
+/// * nbunch: the number of configurations to be generated
+///
+pub fn kick_bunch(parent_mol: &Molecule, nbunch: usize) -> Vec<Molecule> {
+    info!("Creating {} molecules using kickstart.", nbunch);
+    (0..nbunch)
+        .into_par_iter()
+        .map(|_| kick(&parent_mol).expect("kick parent_mol"))
+        .collect()
+}
 // pub:1 ends here
 
 // test
