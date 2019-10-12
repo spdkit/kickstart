@@ -14,6 +14,37 @@ use spdkit::prelude::*;
 use spdkit::*;
 // imports:1 ends here
 
+// duplicates
+// Remove duplicates in population based on energy criterion.
+
+// [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*duplicates][duplicates:1]]
+trait RemoveDuplicates {
+    fn remove_duplicates_by_energy(&mut self, threshold: f64) -> usize;
+}
+
+// FIXME: adhoc hacking for removing duplicates, based on energy
+// criterion only
+impl RemoveDuplicates for Vec<Individual<MolGenome>> {
+    /// # Parameters
+    /// * threshold: energy diff threshold for similarity detection
+    ///
+    /// # Returns
+    /// * return the number of removed indvs
+    fn remove_duplicates_by_energy(&mut self, threshold: f64) -> usize {
+        use spdkit::common::float_ordering_minimize;
+
+        let n_old = self.len();
+        self.sort_by(|a, b| float_ordering_minimize(&a.objective_value(), &b.objective_value()));
+
+        // FIXME: adhoc
+        self.dedup_by(|a, b| (a.objective_value() - b.objective_value()).abs() < threshold);
+        let n_removed = n_old - self.len();
+        info!("Removed {} duplicates", n_removed);
+        n_removed
+    }
+}
+// duplicates:1 ends here
+
 // crossover
 
 // [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*crossover][crossover:1]]
@@ -164,41 +195,38 @@ where
 }
 // evolve:1 ends here
 
-// survive
+// hall of fame
 
-// [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*survive][survive:1]]
-trait RemoveDuplicates {
-    fn remove_duplicates_by_energy(&mut self, threshold: f64) -> usize;
+// [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*hall%20of%20fame][hall of fame:1]]
+struct HallOfFame {
+    energy: f64,
+    igeneration: usize,
 }
 
-// FIXME: adhoc hacking for removing duplicates, based on energy
-// criterion only
-impl RemoveDuplicates for Vec<Individual<MolGenome>> {
-    /// # Parameters
-    /// * threshold: energy diff threshold for similarity detection
-    ///
-    /// # Returns
-    /// * return the number of removed indvs
-    fn remove_duplicates_by_energy(&mut self, threshold: f64) -> usize {
-        use spdkit::common::float_ordering_minimize;
+impl HallOfFame {
+    fn new(energy: f64, igeneration: usize) -> Self {
+        Self {
+            energy,
+            igeneration,
+        }
+    }
 
-        let n_old = self.len();
-        self.sort_by(|a, b| float_ordering_minimize(&a.objective_value(), &b.objective_value()));
-
-        // FIXME: adhoc
-        self.dedup_by(|a, b| (a.objective_value() - b.objective_value()).abs() < threshold);
-        let n_removed = n_old - self.len();
-        info!("Removed {} duplicates", n_removed);
-        n_removed
+    fn summarize(&self) -> String {
+        format!(
+            "energy = {}, found in generation {}",
+            self.energy, self.igeneration
+        )
     }
 }
-// survive:1 ends here
+// hall of fame:1 ends here
 
 // public
 
 // [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*public][public:1]]
 // cluster structure search using genetic algorithm
 pub fn genetic_search() -> Result<()> {
+    use indexmap::IndexMap as HashMap;
+
     let pkg_version = env!("CARGO_PKG_VERSION");
     let pkg_name = env!("CARGO_PKG_NAME");
     let msg = format!(" {} v{} ", pkg_name, pkg_version);
@@ -223,14 +251,19 @@ pub fn genetic_search() -> Result<()> {
     // start the evolution loop
     let nbunch = config.search.population_size;
     let seeds = crate::exploration::new_random_genomes(nbunch);
+    let mut hall_of_fame = HashMap::new();
     for g in engine.evolve(&seeds).take(config.search.max_generations) {
         let generation = g?;
         generation.summary();
-        let energy = generation
-            .population
-            .best_member()
-            .unwrap()
-            .objective_value();
+        let best = generation.population.best_member().unwrap();
+        let energy = best.objective_value();
+        // update hall-of-fame
+        let best_genome = best.genome();
+        let k = best_genome.uid().to_string();
+        if !hall_of_fame.contains_key(&k) {
+            let v = HallOfFame::new(energy, generation.index);
+            hall_of_fame.insert(k, v);
+        }
 
         // write generation results
         let mols: Vec<_> = generation
@@ -249,6 +282,11 @@ pub fn genetic_search() -> Result<()> {
                 break;
             }
         }
+    }
+
+    println!("{:#^80}", " Hall of fame ");
+    for (k, h) in hall_of_fame {
+        println!("{} => {}", k, h.summarize());
     }
 
     println!(

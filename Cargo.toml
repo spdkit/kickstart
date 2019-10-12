@@ -16,6 +16,7 @@ gosh-db = {version = "*", path = "../../gosh-rs/database"}
 crossbeam-channel = "0.3"
 spdkit = { path = "../spdkit" }
 #spdkit = { git = "https://github.com/spdkit/spdkit.git" }
+indexmap = "1"
 educate = { path = "../structure-education" }
 structopt = "0.2"
 serde = {version="1.0", features = ["derive"]}
