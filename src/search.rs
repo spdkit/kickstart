@@ -220,7 +220,7 @@ where
     //     all_indvs.extend_from_slice(&new_indvs);
     // }
 
-    let mut pop = valuer.build_population(all_indvs);
+    let mut pop = valuer.build_population(all_indvs).with_size_limit(m);
     let n = pop.survive();
     info!("Removed {} bad-quality individuals.", n);
     pop
