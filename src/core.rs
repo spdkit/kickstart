@@ -57,10 +57,15 @@ impl EvaluatedGenome {
 use self::db::KICKSTART_DB_CONNECTION as Db;
 use gosh_db::prelude::*;
 
+impl Collection for EvaluatedGenome {
+    fn collection_name() -> String {
+        "EvaluatedGenome".into()
+    }
+}
+
 impl EvaluatedGenome {
-    // FIXME: performance
     pub(crate) fn number_of_evaluations() -> usize {
-        Self::list_collection(&Db).expect("db: list failure").len()
+        Self::collection_size(&Db).expect("db: list failure") as usize
     }
 }
 
@@ -93,12 +98,6 @@ mod db {
         };
     }
 }
-
-impl Collection for EvaluatedGenome {
-    fn collection_name() -> String {
-        "EvaluatedGenome".into()
-    }
-}
 // database:1 ends here
 
 // genome/molecule mapping
@@ -117,7 +116,7 @@ pub(crate) trait ToGenome {
 }
 
 impl MolGenome {
-    /// Create molecule from MolGenome
+    /// Re-create molecule from MolGenome
     pub(crate) fn decode(&self) -> Molecule {
         use educate::prelude::*;
 
