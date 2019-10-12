@@ -5,7 +5,6 @@ use crate::common::*;
 use crate::config::Config;
 use crate::core::*;
 use crate::exploitation::*;
-use crate::model::*;
 
 use gosh::gchemol::prelude::*;
 use gosh::gchemol::{io, Atom, Molecule};
@@ -43,7 +42,7 @@ impl VariationOperator<MolGenome> for CutAndSpliceCrossOver {
             .with_context(|_| format!("failed to educate"))
             .unwrap();
 
-        let genomes: Vec<_> = crate::calculator::compute(vec![mol])
+        let genomes: Vec<_> = crate::model::compute(vec![mol])
             .expect("calc failure")
             .into_iter()
             .map(|mp| mp.encode())

@@ -54,15 +54,8 @@ impl EvaluatedGenome {
 // database
 
 // [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*database][database:1]]
-use crate::database::KICKSTART_DB_CONNECTION as Db;
-
+use self::db::KICKSTART_DB_CONNECTION as Db;
 use gosh_db::prelude::*;
-
-impl Collection for EvaluatedGenome {
-    fn collection_name() -> String {
-        "EvaluatedGenome".into()
-    }
-}
 
 impl EvaluatedGenome {
     // FIXME: performance
@@ -78,6 +71,32 @@ impl MolGenome {
         let evaluated =
             EvaluatedGenome::get_from_collection(&Db, key).expect("db: read energy failure");
         evaluated.energy
+    }
+}
+
+// global database connection
+mod db {
+    use crate::common::*;
+    use gosh_db::prelude::*;
+    use gosh_db::DbConnection;
+
+    lazy_static! {
+        pub(super) static ref KICKSTART_DB_CONNECTION: DbConnection = {
+            let dbvar = "GOSH_DATABASE_URL";
+            let default_db = format!("{}.db", env!("CARGO_PKG_NAME"));
+            if std::env::var(dbvar).is_err() {
+                info!("Use default db file: {}", default_db);
+                std::env::set_var(dbvar, default_db);
+            }
+            let db = DbConnection::establish().expect("gosh db");
+            db
+        };
+    }
+}
+
+impl Collection for EvaluatedGenome {
+    fn collection_name() -> String {
+        "EvaluatedGenome".into()
     }
 }
 // database:1 ends here
@@ -117,7 +136,6 @@ impl MolGenome {
 /// Create a random string of length `n` for naming a genome
 fn random_name(n: usize) -> String {
     use rand::distributions::Alphanumeric;
-    use rand::{thread_rng, Rng};
     let mut rng = thread_rng();
     rng.sample_iter(&Alphanumeric).take(n).collect()
 }
@@ -154,7 +172,7 @@ impl EvaluateObjectiveValue<MolGenome> for MolIndividual {
 }
 
 /// Encode computed molecule as `MolGenome` for evolution. The computed
-/// results will be cached in database for later retrieving.
+/// results will be cached in database for spdkit later retrieving.
 impl ToGenome for ModelProperties {
     fn encode(&self) -> MolGenome {
         self.encode_as_evaluated().genome

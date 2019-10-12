@@ -3,7 +3,7 @@
 # [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*cargo.toml][cargo.toml:1]]
 [package]
 name = "kickstart"
-version = "0.0.18"
+version = "0.0.19"
 edition = "2018"
 authors = ["Wenping Guo <ybyygu@gmail.com>"]
 

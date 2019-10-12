@@ -15,7 +15,6 @@ use crate::common::*;
 // [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*random%20bond][random bond:1]]
 pub fn random_bond_mutate(mol: &Molecule, degree: usize) -> Result<Molecule> {
     // import Educate trait here
-    use crate::model::*;
     use educate::prelude::*;
 
     let mut new_mol = mol.clone();

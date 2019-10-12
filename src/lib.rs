@@ -4,11 +4,9 @@
 #[macro_use]
 extern crate lazy_static;
 
-mod calculator;
 mod config;
 mod core;
 mod crossover;
-mod database;
 mod exploitation;
 mod exploration;
 mod kickstart;
