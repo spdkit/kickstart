@@ -15,20 +15,35 @@ use spdkit::prelude::*;
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub(crate) struct MolGenome {
     name: String,
+    age: usize,
     data: Vec<(usize, [f64; 3])>,
 }
 
 impl std::fmt::Display for MolGenome {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::result::Result<(), std::fmt::Error> {
-        write!(f, "{:}", self.name)
+        // output name and current healthy point
+        write!(f, "{:} (hp = {:.2})", self.name, self.hp())
     }
 }
 
 impl spdkit::individual::Genome for MolGenome {}
 
+const BETA_FACTOR: f64 = 0.1;
 impl MolGenome {
     pub(crate) fn uid(&self) -> &str {
         &self.name
+    }
+
+    /// Healthy point.
+    pub(crate) fn hp(&self) -> f64 {
+        (-BETA_FACTOR * self.age as f64).exp()
+    }
+
+    /// Return a cloned MolGenome with larger age.
+    pub(crate) fn aged(&self) -> Self {
+        let mut new = self.clone();
+        new.age += 1;
+        new
     }
 }
 // genome:1 ends here
@@ -149,6 +164,7 @@ fn encode_molecule(mol: &Molecule) -> MolGenome {
 
     MolGenome {
         name: random_name(GENOME_NAME_LENGTH),
+        age: 0,
         data: g,
     }
 }

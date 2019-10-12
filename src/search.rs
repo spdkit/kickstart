@@ -45,6 +45,35 @@ impl RemoveDuplicates for Vec<Individual<MolGenome>> {
 }
 // duplicates:1 ends here
 
+// fitness
+
+// [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*fitness][fitness:1]]
+#[derive(Clone)]
+struct MinimizeEnergyWithAging {
+    fitness_eval: spdkit::fitness::MinimizeEnergy,
+}
+
+impl MinimizeEnergyWithAging {
+    fn new(t: f64) -> Self {
+        Self {
+            fitness_eval: spdkit::fitness::MinimizeEnergy::new(t),
+        }
+    }
+}
+
+impl EvaluateFitness<MolGenome> for MinimizeEnergyWithAging {
+    // Dynamic fitness scaling is applied.
+    fn evaluate(&mut self, indvs: &[Individual<MolGenome>]) -> Vec<f64> {
+        self.fitness_eval
+            .evaluate(indvs)
+            .into_iter()
+            .zip(indvs)
+            .map(|(f, indv)| f * indv.genome().hp())
+            .collect()
+    }
+}
+// fitness:1 ends here
+
 // crossover
 
 // [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*crossover][crossover:1]]
@@ -225,6 +254,7 @@ impl HallOfFame {
 // [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*public][public:1]]
 // cluster structure search using genetic algorithm
 pub fn genetic_search() -> Result<()> {
+    // FIXME
     use indexmap::IndexMap as HashMap;
 
     let pkg_version = env!("CARGO_PKG_VERSION");
@@ -237,7 +267,7 @@ pub fn genetic_search() -> Result<()> {
     // create valuer gear
     let temperature = config.search.boltzmann_temperature;
     let valuer = spdkit::Valuer::new()
-        .with_fitness(spdkit::fitness::MinimizeEnergy::new(temperature))
+        .with_fitness(MinimizeEnergyWithAging::new(temperature))
         .with_creator(MolIndividual);
     let algo = MyAlgorithm::default();
 
