@@ -209,18 +209,21 @@ where
     // remove similar individuals
     all_indvs.remove_duplicates_by_energy(similarity_energy_threshold);
 
-    // Add new random genomes only when it really needs. This will reduce
-    // redudant calculations.
-    if all_indvs.len() < m {
-        let n_add_random = m - all_indvs.len();
-        // add random genomes as candicates in a global way
-        println!("Add {} new indvs with random kick", n_add_random);
-        let new_genomes = crate::exploration::new_random_genomes(n_add_random);
-        let new_indvs = valuer.create_individuals(new_genomes);
-        all_indvs.extend_from_slice(&new_indvs);
-    }
+    // // Add new random genomes only when it really needs. This will reduce
+    // // redudant calculations.
+    // if all_indvs.len() < m {
+    //     let n_add_random = m - all_indvs.len();
+    //     // add random genomes as candicates in a global way
+    //     println!("Add {} new indvs with random kick", n_add_random);
+    //     let new_genomes = crate::exploration::new_random_genomes(n_add_random);
+    //     let new_indvs = valuer.create_individuals(new_genomes);
+    //     all_indvs.extend_from_slice(&new_indvs);
+    // }
 
-    valuer.build_population(all_indvs[..m].to_vec())
+    let mut pop = valuer.build_population(all_indvs);
+    let n = pop.survive();
+    info!("Removed {} bad-quality individuals.", n);
+    pop
 }
 // evolve:1 ends here
 
