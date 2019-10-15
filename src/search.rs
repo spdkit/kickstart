@@ -255,6 +255,7 @@ impl HallOfFame {
 // public
 
 // [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*public][public:1]]
+
 // cluster structure search using genetic algorithm
 pub fn genetic_search() -> Result<()> {
     // FIXME
