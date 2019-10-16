@@ -225,6 +225,20 @@ where
     info!("Removed {} bad-quality individuals.", n);
     pop
 }
+
+impl<F, C> Evolve<MolGenome, F, C> for MyAlgorithm
+where
+    F: EvaluateFitness<MolGenome>,
+    C: EvaluateObjectiveValue<MolGenome>,
+{
+    fn next_generation(
+        &mut self,
+        cur_population: &Population<MolGenome>,
+        valuer: &mut Valuer<MolGenome, F, C>,
+    ) -> Population<MolGenome> {
+        evolve_core(cur_population, valuer)
+    }
+}
 // evolve:1 ends here
 
 // hall of fame
@@ -255,17 +269,55 @@ impl HallOfFame {
 // public
 
 // [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*public][public:1]]
+use indexmap::IndexMap;
+use spdkit::termination::Generation;
+
+type MyEngine = Engine<MolGenome, MyAlgorithm, MinimizeEnergyWithAging, MolIndividual>;
 
 // cluster structure search using genetic algorithm
 pub fn genetic_search() -> Result<()> {
-    // FIXME
-    use indexmap::IndexMap as HashMap;
+    let config = &crate::config::CONFIG;
+    let seeds = prepare_seeds();
+    let mut hall_of_fame = IndexMap::new();
+    let mut engine = prepare_engine();
+    for g in engine.evolve(&seeds).take(config.search.max_generations) {
+        let generation = g?;
+        generation.summary();
+        let current_energy = process_generation(generation, &mut hall_of_fame)?;
+        if let Some(target_energy) = config.search.target_energy {
+            if current_energy < target_energy {
+                println!("target energy {} reached.", target_energy);
+                break;
+            }
+        }
+    }
+    post_processes(hall_of_fame);
 
-    let pkg_version = env!("CARGO_PKG_VERSION");
-    let pkg_name = env!("CARGO_PKG_NAME");
-    let msg = format!(" {} v{} ", pkg_name, pkg_version);
-    println!("{:#^80}", msg);
+    Ok(())
+}
 
+pub(crate) fn evolve_one_step_from_seeds(seeds: Vec<MolGenome>) -> Result<()> {
+    let config = &crate::config::CONFIG;
+    let mut hall_of_fame = IndexMap::new();
+    let mut engine = prepare_engine();
+
+    let mut iterator = engine.evolve(&seeds).take(config.search.max_generations);
+    loop {
+        let generation = iterator.next().unwrap()?;
+        let current_energy = process_generation(generation, &mut hall_of_fame)?;
+        if let Some(target_energy) = config.search.target_energy {
+            if current_energy < target_energy {
+                println!("target energy {} reached.", target_energy);
+                break;
+            }
+        }
+    }
+
+    post_processes(hall_of_fame);
+    Ok(())
+}
+
+fn prepare_engine() -> MyEngine {
     let config = &crate::config::CONFIG;
 
     // create valuer gear
@@ -282,42 +334,10 @@ pub fn genetic_search() -> Result<()> {
         engine.set_termination_nlast(n);
     };
 
-    // start the evolution loop
-    let nbunch = config.search.population_size;
-    let seeds = crate::exploration::new_random_genomes(nbunch);
-    let mut hall_of_fame = HashMap::new();
-    for g in engine.evolve(&seeds).take(config.search.max_generations) {
-        let generation = g?;
-        generation.summary();
-        let best = generation.population.best_member().unwrap();
-        let energy = best.objective_value();
-        // update hall-of-fame
-        let best_genome = best.genome();
-        let k = best_genome.uid().to_string();
-        if !hall_of_fame.contains_key(&k) {
-            let v = HallOfFame::new(energy, generation.index);
-            hall_of_fame.insert(k, v);
-        }
+    engine
+}
 
-        // write generation results
-        let mols: Vec<_> = generation
-            .population
-            .individuals()
-            .iter()
-            .map(|indv| indv.genome().decode())
-            .collect();
-
-        let ofile = format!("./g{:03}.xyz", generation.index);
-        io::write(ofile, &mols)?;
-
-        if let Some(target_energy) = config.search.target_energy {
-            if energy < target_energy {
-                println!("target energy {} reached.", target_energy);
-                break;
-            }
-        }
-    }
-
+fn post_processes(hall_of_fame: IndexMap<String, HallOfFame>) {
     println!("{:#^80}", " Hall of fame ");
     for (k, h) in hall_of_fame {
         println!("{} => {}", k, h.summarize());
@@ -327,21 +347,38 @@ pub fn genetic_search() -> Result<()> {
         "Total number of evaluations during evolution: {}",
         get_number_of_evaluations()
     );
-
-    Ok(())
 }
 
-impl<F, C> Evolve<MolGenome, F, C> for MyAlgorithm
-where
-    F: EvaluateFitness<MolGenome>,
-    C: EvaluateObjectiveValue<MolGenome>,
-{
-    fn next_generation(
-        &mut self,
-        cur_population: &Population<MolGenome>,
-        valuer: &mut Valuer<MolGenome, F, C>,
-    ) -> Population<MolGenome> {
-        evolve_core(cur_population, valuer)
+fn process_generation(
+    generation: Generation<MolGenome>,
+    hall_of_fame: &mut IndexMap<String, HallOfFame>,
+) -> Result<f64> {
+    let best = generation.population.best_member().unwrap();
+    let energy = best.objective_value();
+    // update hall-of-fame
+    let best_genome = best.genome();
+    let k = best_genome.uid().to_string();
+    if !hall_of_fame.contains_key(&k) {
+        let v = HallOfFame::new(energy, generation.index);
+        hall_of_fame.insert(k, v);
     }
+
+    // write generation results
+    let mols: Vec<_> = generation
+        .population
+        .individuals()
+        .iter()
+        .map(|indv| indv.genome().decode())
+        .collect();
+
+    let ofile = format!("./g{:03}.xyz", generation.index);
+    io::write(ofile, &mols)?;
+
+    Ok(energy)
+}
+
+fn prepare_seeds() -> Vec<MolGenome> {
+    let nbunch = crate::config::CONFIG.search.population_size;
+    crate::exploration::new_random_genomes(nbunch)
 }
 // public:1 ends here
