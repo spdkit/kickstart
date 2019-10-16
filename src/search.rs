@@ -94,8 +94,12 @@ impl VariationOperator<MolGenome> for CutAndSpliceCrossOver {
         let mol2 = parents[1].genome().decode();
         debug!("breeding using crossover {} + {}.", mol1.name, mol2.name);
 
-        let mut mol =
-            crate::crossover::plane_cut_and_splice(&mol1, &mol2).expect("cut-and-splice failed");
+        // handle cut-and-splice failure
+        let mut mol = crate::crossover::plane_cut_and_splice(&mol1, &mol2).unwrap_or_else(|err| {
+            error!("cut-and-splice crossover failed {:}", err);
+            warn!("use one of parent structure instead.");
+            mol1.clone()
+        });
 
         // avoid bad geometry which will cause opt failure
         mol.educate()
