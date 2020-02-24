@@ -12,11 +12,18 @@ rand = "0.7"
 quicli = "0.4"
 gosh = {path = "/home/ybyygu/Workspace/Programming/gosh-rs/gosh"}
 #gosh = {git = "https://github.com/gosh-rs/gosh.git", tag="v0.0.22"}
-gosh-db = {version = "*", path = "../../gosh-rs/database"}
+gosh-db = {version = "*", package="gosh-database"}
 crossbeam-channel = "0.3"
 signal-hook = "0.1"
+#ctrlc = "3"
 spdkit = { path = "../spdkit" }
+warp = "0.1"
+pager = "0.15"
+tokio = "0.1"
+tokio-signal = "0.2"
+tokio-process = "0.2"
 #spdkit = { git = "https://github.com/spdkit/spdkit.git" }
+linefeed = "0.6"
 indexmap = "1"
 educate = { path = "../structure-education" }
 structopt = "0.2"

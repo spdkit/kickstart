@@ -286,7 +286,6 @@ pub fn genetic_search() -> Result<()> {
     let mut engine = prepare_engine();
     for g in engine.evolve(&seeds).take(config.search.max_generations) {
         let generation = g?;
-        generation.summary();
         let current_energy = process_generation(generation, &mut hall_of_fame)?;
         if let Some(target_energy) = config.search.target_energy {
             if current_energy < target_energy {
@@ -300,17 +299,31 @@ pub fn genetic_search() -> Result<()> {
     Ok(())
 }
 
-pub(crate) fn evolve_one_step_from_seeds(seeds: Vec<MolGenome>) -> Result<()> {
+pub(crate) fn evolve_from_seeds(
+    seeds: Vec<MolGenome>,
+    control_flag: &JobFlag,
+) -> Result<Vec<MolGenome>> {
     let config = &crate::config::CONFIG;
     let mut hall_of_fame = IndexMap::new();
     let mut engine = prepare_engine();
 
     let mut iterator = engine.evolve(&seeds).take(config.search.max_generations);
-    loop {
+
+    // wait for user interruption signal
+    let mut current_seeds = seeds.clone();
+    while JobType::from(control_flag) == JobType::Run {
         let generation = iterator.next().unwrap()?;
+        // update current_seeds
+        current_seeds = generation
+            .population
+            .members()
+            .map(|m| m.genome().to_owned())
+            .collect();
         let current_energy = process_generation(generation, &mut hall_of_fame)?;
         if let Some(target_energy) = config.search.target_energy {
             if current_energy < target_energy {
+                // signal done
+                current_seeds = vec![];
                 println!("target energy {} reached.", target_energy);
                 break;
             }
@@ -318,7 +331,12 @@ pub(crate) fn evolve_one_step_from_seeds(seeds: Vec<MolGenome>) -> Result<()> {
     }
 
     post_processes(hall_of_fame);
-    Ok(())
+    Ok(current_seeds)
+}
+
+pub(crate) fn prepare_seeds() -> Vec<MolGenome> {
+    let nbunch = crate::config::CONFIG.search.population_size;
+    crate::exploration::new_random_genomes(nbunch)
 }
 
 fn prepare_engine() -> MyEngine {
@@ -334,7 +352,7 @@ fn prepare_engine() -> MyEngine {
     // create evolution engine
     let mut engine = spdkit::Engine::create().valuer(valuer).algorithm(algo);
     if let Some(n) = config.search.termination_nlast {
-        println!("running mean termination: nlast = {}", n);
+        println!("control_flag mean termination: nlast = {}", n);
         engine.set_termination_nlast(n);
     };
 
@@ -357,6 +375,8 @@ fn process_generation(
     generation: Generation<MolGenome>,
     hall_of_fame: &mut IndexMap<String, HallOfFame>,
 ) -> Result<f64> {
+    generation.summary();
+
     let best = generation.population.best_member().unwrap();
     let energy = best.objective_value();
     // update hall-of-fame
@@ -379,10 +399,5 @@ fn process_generation(
     io::write(ofile, &mols)?;
 
     Ok(energy)
-}
-
-fn prepare_seeds() -> Vec<MolGenome> {
-    let nbunch = crate::config::CONFIG.search.population_size;
-    crate::exploration::new_random_genomes(nbunch)
 }
 // public:1 ends here

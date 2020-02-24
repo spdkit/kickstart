@@ -5,9 +5,9 @@ use std::collections::HashSet;
 
 use gosh::gchemol;
 
+use gchemol::geometry::rand_rotate;
 use gchemol::prelude::*;
 use gchemol::Molecule;
-use gchemol::{geometry::rand_rotate};
 
 use crate::common::*;
 // imports:1 ends here

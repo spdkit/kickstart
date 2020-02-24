@@ -49,9 +49,9 @@ fn combine_fragments_into_one(fragments: &Vec<Molecule>) -> Molecule {
         }
     }
 
-    mol.educate().with_context(|_| {
-        format!("failed to educate")
-    }).unwrap();
+    mol.educate()
+        .with_context(|_| format!("failed to educate"))
+        .unwrap();
 
     mol
 }
@@ -144,6 +144,5 @@ fn test_distribute() {
     let mut mol = Molecule::from_file(filename).expect("mol2 file");
     let mol = kick(&mol).expect("kick new mol");
     assert_eq!(12, mol.natoms());
-    mol.to_file("/tmp/k.mol2");
 }
 // test:1 ends here

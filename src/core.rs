@@ -82,14 +82,34 @@ impl EvaluatedGenome {
     pub(crate) fn number_of_evaluations() -> usize {
         Self::collection_size(&Db).expect("db: list failure") as usize
     }
+
+    pub fn list_db() -> Result<()> {
+        let mut items = Self::list_collection(&Db)?;
+        if items.is_empty() {
+            error!("No items in db.");
+        } else {
+            println!("Found {} items.", items.len());
+            println!("{:^width$} => {:^12}", "key", "energy", width = items[0].uid().len());
+
+            items.sort_by(|a, b| a.energy.partial_cmp(&b.energy).unwrap_or(std::cmp::Ordering::Less));
+            for eg in items {
+                let key = eg.uid();
+                println!("{} => {:<-12.4}", key, eg.energy);
+            }
+        }
+        Ok(())
+    }
+}
+
+pub fn list_db() -> Result<()> {
+    EvaluatedGenome::list_db()
 }
 
 impl MolGenome {
     /// Retrieve energy from db
     pub(crate) fn energy(&self) -> f64 {
         let key = self.uid();
-        let evaluated =
-            EvaluatedGenome::get_from_collection(&Db, key).expect("db: read energy failure");
+        let evaluated = EvaluatedGenome::get_from_collection(&Db, key).expect("db: read energy failure");
         evaluated.energy
     }
 }
@@ -169,6 +189,55 @@ fn encode_molecule(mol: &Molecule) -> MolGenome {
     }
 }
 // genome/molecule mapping:1 ends here
+
+// job control
+
+// [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*job%20control][job control:1]]
+use std::sync::atomic;
+
+pub(crate) type JobFlag = atomic::AtomicUsize;
+
+#[derive(Eq, PartialEq, Debug)]
+pub(crate) enum JobType {
+    /// Run program
+    Run,
+    /// Stop program.
+    Stop,
+    /// Edit internal state.
+    Edit,
+}
+
+impl JobType {
+    pub(crate) fn from(flag: &JobFlag) -> Self {
+        match flag.load(atomic::Ordering::SeqCst) {
+            0 => Self::Run,
+            1 => Self::Stop,
+            2 => Self::Edit,
+            _ => unreachable!(),
+        }
+    }
+
+    pub(crate) fn flag(&self) -> usize {
+        match self {
+            Self::Run => 0,
+            Self::Stop => 1,
+            Self::Edit => 2,
+        }
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use std::sync::atomic;
+
+    #[test]
+    fn test_job_flag() {
+        let flag = JobFlag::new(JobType::Run.flag());
+        dbg!(flag);
+    }
+}
+// job control:1 ends here
 
 // public
 
