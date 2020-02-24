@@ -7,7 +7,7 @@ use std::collections::HashMap;
 use gchemol::compat::*;
 use gchemol::prelude::*;
 use gchemol::{io, Atom, Molecule};
-use gchemol_old::geometry::{rand_points_within_sphere, rand_rotate};
+use gchemol::geom::{rand_points_within_sphere, rand_rotate};
 
 use crate::common::*;
 // imports:1 ends here

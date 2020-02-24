@@ -9,8 +9,7 @@ use gosh::gchemol;
 use gchemol::compat::*;
 use gchemol::prelude::*;
 use gchemol::Molecule;
-// FIXME: remove
-use gchemol_old::geometry::rand_rotate;
+use gchemol::geom::rand_rotate;
 
 use crate::common::*;
 // imports:1 ends here

@@ -22,11 +22,11 @@ linefeed = "0.6"
 structopt = "0.3"
 toml = "0.5"
 crossbeam-channel = "0.3"
-#ctrlc = "3"
 signal-hook = "0.1"
-gut = {version="0.1.2", package="gchemol-gut"}
-gosh = {version = "0.0.25", features=["adhoc"]}
-gchemol_old = {git = "https://github.com/ybyygu/gchemol.git", branch="dev", package="gchemol"}
+#ctrlc = "3"
+#-------------------------------------------------
+gut = { version="0.1.2", package="gchemol-gut" }
+gosh = { version = "0.0.25", features=["adhoc"] }
 spdkit = { version="0.0.18" }
 educate = { path = "../structure-education" }
 # Cargo:1 ends here
