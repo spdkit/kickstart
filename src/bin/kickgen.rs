@@ -22,7 +22,7 @@ struct Cli {
     number_of_molecules: usize,
 }
 
-fn main() -> CliResult {
+fn main() -> Result<()> {
     let args = Cli::from_args();
     gut::cli::setup_logger();
 

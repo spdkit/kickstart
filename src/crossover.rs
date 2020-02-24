@@ -5,9 +5,12 @@ use std::collections::HashSet;
 
 use gosh::gchemol;
 
+// FIXME: remove
+use gchemol::compat::*;
 use gchemol::prelude::*;
 use gchemol::Molecule;
-use gchemol_old::{geometry::rand_rotate};
+// FIXME: remove
+use gchemol_old::geometry::rand_rotate;
 
 use crate::common::*;
 // imports:1 ends here
@@ -32,7 +35,7 @@ fn cut_molecule_by_rand_plane(mol: &Molecule) -> (HashSet<usize>, HashSet<usize>
     let mut mol = mol.clone();
     mol.recenter();
 
-    let positions = mol.positions();
+    let positions = mol.positions_vec();
     let rotated = rand_rotate(&positions);
 
     let ind_all: HashSet<_> = (0..natoms).collect();
@@ -46,7 +49,7 @@ pub(crate) fn plane_cut_and_splice(mol1: &Molecule, mol2: &Molecule) -> Result<M
     let natoms = mol1.natoms();
     // sanity check
     if mol2.natoms() == natoms {
-        for (a1, a2) in mol1.atoms().zip(mol2.atoms()) {
+        for ((_, a1), (_, a2)) in mol1.atoms().zip(mol2.atoms()) {
             if a1.symbol() != a2.symbol() {
                 bail!("atom numbering is inconsistent!");
             }
@@ -56,7 +59,7 @@ pub(crate) fn plane_cut_and_splice(mol1: &Molecule, mol2: &Molecule) -> Result<M
     }
 
     // record element symbols
-    let symbols = mol1.symbols();
+    let symbols = mol1.symbols_vec();
     let reduced_symbols = mol1.reduced_symbols();
     let maxloop = 50000;
     let mut iloop = 0;
@@ -77,7 +80,7 @@ pub(crate) fn plane_cut_and_splice(mol1: &Molecule, mol2: &Molecule) -> Result<M
             s2.extend(s1.iter());
 
             assert_eq!(natoms, s2.len());
-            omol.set_symbols(&s2);
+            omol.set_symbols(s2);
             let mut got = true;
             for (k, v) in omol.reduced_symbols() {
                 if reduced_symbols[&k] != v {
@@ -92,7 +95,7 @@ pub(crate) fn plane_cut_and_splice(mol1: &Molecule, mol2: &Molecule) -> Result<M
 
                 s2.extend(s1.iter());
 
-                omol.set_positions(&s2);
+                omol.set_positions(s2);
                 break;
             }
         }
@@ -112,9 +115,9 @@ pub(crate) fn plane_cut_and_splice(mol1: &Molecule, mol2: &Molecule) -> Result<M
 // [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*test][test:1]]
 #[test]
 fn test_plane_cut_splice() {
-    let mut mols1 = gchemol::io::read("tests/files/c6h6-geom1.mol2").expect("geom1");
+    let mut mols1 = gchemol::io::read_all("tests/files/c6h6-geom1.mol2").expect("geom1");
     let mut mol1 = &mut mols1[0];
-    let mut mols2 = gchemol::io::read("tests/files/c6h6-geom2.mol2").expect("geom2");
+    let mut mols2 = gchemol::io::read_all("tests/files/c6h6-geom2.mol2").expect("geom2");
     let mut mol2 = &mut mols2[0];
     assert_eq!(mol1.natoms(), mol2.natoms());
 

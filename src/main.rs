@@ -26,7 +26,7 @@ struct Cli {
     run: bool,
 }
 
-fn main() -> CliResult {
+fn main() -> Result<()> {
     gut::cli::setup_logger();
 
     let pkg_version = env!("CARGO_PKG_VERSION");

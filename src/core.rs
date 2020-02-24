@@ -2,9 +2,10 @@
 
 // [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*imports][imports:1]]
 use crate::common::*;
-
-use gchemol::{Atom, Molecule};
 use gosh::gchemol;
+
+use gchemol::compat::*;
+use gchemol::{Atom, Molecule};
 use spdkit::prelude::*;
 // imports:1 ends here
 
@@ -155,12 +156,8 @@ impl MolGenome {
     pub(crate) fn decode(&self) -> Molecule {
         use educate::prelude::*;
 
-        let mut mol = Molecule::new(&self.name);
-
-        for (n, [x, y, z]) in &self.data {
-            let a = Atom::build().element(*n).position(*x, *y, *z).finish();
-            mol.add_atom(a);
-        }
+        let mut mol = Molecule::from_atoms(self.data.clone());
+        mol.set_title(&self.name);
 
         mol.educated_rebond().unwrap();
         mol
@@ -176,7 +173,7 @@ fn random_name(n: usize) -> String {
 
 fn encode_molecule(mol: &Molecule) -> MolGenome {
     let mut g = vec![];
-    for a in mol.sorted().atoms() {
+    for (_, a) in mol.sorted().atoms() {
         let n = a.number();
         let p = a.position();
         g.push((n, p));
@@ -263,8 +260,8 @@ impl ToGenome for ModelProperties {
     }
 
     fn encode_as_evaluated(&self) -> EvaluatedGenome {
-        let energy = self.energy.expect("no energy");
-        let mol = self.molecule.as_ref().expect("no molecule");
+        let energy = self.get_energy().expect("no energy");
+        let mol = self.get_molecule().as_ref().expect("no molecule").clone();
         let evaluated = EvaluatedGenome {
             genome: encode_molecule(mol),
             energy,

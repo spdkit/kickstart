@@ -43,7 +43,7 @@ fn get_energy(mol: &Molecule, runfile: &str) -> Result<f64> {
     let mut bbm = BlackBox::from_dir(runfile);
     let mr = bbm.compute(mol)?;
 
-    if let Some(energy) = mr.energy {
+    if let Some(energy) = mr.get_energy() {
         debug!("sp energy = {:-12.5}", energy);
         return Ok(energy);
     } else {
@@ -61,10 +61,10 @@ fn get_optimized_molecule(mol: &Molecule, runfile: &str) -> Result<Molecule> {
 
     match bbm.compute(&mol) {
         Ok(mr) => {
-            if let Some(energy) = mr.energy {
+            if let Some(energy) = mr.get_energy() {
                 debug!("opt energy = {:-12.5}", energy);
-                if let Some(mol) = mr.molecule {
-                    return Ok(mol);
+                if let Some(mol) = mr.get_molecule() {
+                    return Ok(mol.clone());
                 } else {
                     bail!("no molecule record found in bbm results");
                 }
@@ -112,7 +112,7 @@ impl Calculator {
             debug!("Calculate {} molecules in bunch mode.", mols.len());
             self.bbm
                 .compute_bunch(mols)
-                .with_context(|e| format!("opt failed in bundle mode"))?
+                .context("opt failed in bundle mode")?
         } else {
             // not possible to parallel
             mols.iter()
@@ -213,7 +213,7 @@ fn test_concurrent_calculation() -> Result<()> {
 
     // jobs
     let molfile = "/home/ybyygu/Incoming/research/kickstart/files/test2/g000.xyz";
-    let mols = gchemol::io::read(molfile)?;
+    let mols = gchemol::io::read_all(molfile)?;
 
     let _ = runner.compute(mols)?;
 

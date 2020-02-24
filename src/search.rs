@@ -83,16 +83,12 @@ use spdkit::population::*;
 struct CutAndSpliceCrossOver;
 
 impl VariationOperator<MolGenome> for CutAndSpliceCrossOver {
-    fn breed_from<R: Rng + Sized>(
-        &self,
-        parents: &[Member<MolGenome>],
-        rng: &mut R,
-    ) -> Vec<MolGenome> {
+    fn breed_from<R: Rng + Sized>(&self, parents: &[Member<MolGenome>], rng: &mut R) -> Vec<MolGenome> {
         use educate::prelude::*;
 
         let mol1 = parents[0].genome().decode();
         let mol2 = parents[1].genome().decode();
-        debug!("breeding using crossover {} + {}.", mol1.name, mol2.name);
+        debug!("breeding using crossover {} + {}.", mol1.title(), mol2.title());
 
         // handle cut-and-splice failure
         let mut mol = crate::crossover::plane_cut_and_splice(&mol1, &mol2).unwrap_or_else(|err| {
@@ -102,9 +98,7 @@ impl VariationOperator<MolGenome> for CutAndSpliceCrossOver {
         });
 
         // avoid bad geometry which will cause opt failure
-        mol.educate()
-            .with_context(|_| format!("failed to educate"))
-            .unwrap();
+        mol.educate().context("failed to educate").unwrap();
 
         let genomes: Vec<_> = crate::model::compute(vec![mol])
             .expect("calc failure")
@@ -112,10 +106,7 @@ impl VariationOperator<MolGenome> for CutAndSpliceCrossOver {
             .map(|mp| mp.encode())
             .collect();
 
-        info!(
-            "bred {}, parents: {} + {}",
-            &genomes[0], mol1.name, mol2.name
-        );
+        info!("bred {}, parents: {} + {}", &genomes[0], mol1.title(), mol2.title());
 
         genomes
     }
@@ -124,7 +115,7 @@ impl VariationOperator<MolGenome> for CutAndSpliceCrossOver {
 
 // next parent
 
-// [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*next%20parent][next parent:1]]
+// [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*next parent][next parent:1]]
 fn next_parent(cur_population: &Population<MolGenome>) -> MolGenome {
     let p_add_global_kick = 0.2;
     let p_add_global_crossover = 0.3;
@@ -247,7 +238,7 @@ where
 
 // hall of fame
 
-// [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*hall%20of%20fame][hall of fame:1]]
+// [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*hall of fame][hall of fame:1]]
 struct HallOfFame {
     energy: f64,
     igeneration: usize,

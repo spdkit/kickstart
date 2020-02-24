@@ -149,7 +149,7 @@ fn load_genomes_from_file() -> Result<Vec<MolGenome>> {
     dbg!("loading file");
     use gchemol::prelude::*;
 
-    let mols: Vec<_> = gchemol::io::read("/tmp/test.mol2")?;
+    let mols: Vec<_> = gchemol::io::read_all("/tmp/test.mol2")?;
     let seeds: Vec<_> = crate::model::compute(mols)?
         .iter()
         .map(|mp| mp.encode())

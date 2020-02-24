@@ -26,7 +26,7 @@ struct Cli {
     mutation_degree: usize,
 }
 
-fn main() -> CliResult {
+fn main() -> Result<()> {
     let args = Cli::from_args();
     gut::cli::setup_logger();
 
