@@ -1,8 +1,8 @@
 // imports
 
 // [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*imports][imports:1]]
+use gosh::model::*;
 use gchemol::Molecule;
-use gosh::models::*;
 
 use crate::common::*;
 // imports:1 ends here

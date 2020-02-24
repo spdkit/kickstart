@@ -7,15 +7,12 @@ use std::path::PathBuf;
 // cmdline
 
 // [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*cmdline][cmdline:1]]
-use quicli::prelude::*;
+use gut::prelude::*;
 use structopt::*;
 
 /// Chemical structure explorer
 #[derive(Debug, StructOpt)]
 struct Cli {
-    #[structopt(flatten)]
-    verbosity: Verbosity,
-
     /// Prints default configuration.
     #[structopt(long = "print", short = "p")]
     print: bool,
@@ -30,11 +27,12 @@ struct Cli {
 }
 
 fn main() -> CliResult {
+    gut::cli::setup_logger();
+
     let pkg_version = env!("CARGO_PKG_VERSION");
     let pkg_name = env!("CARGO_PKG_NAME");
 
     let args = Cli::from_args();
-    args.verbosity.setup_env_logger(&env!("CARGO_PKG_NAME"))?;
 
     if args.print {
         println!("{:#^72}", " default configuration ");

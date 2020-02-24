@@ -26,11 +26,10 @@ pub use crate::config::print_default_config; // for kickstart/main
 pub use crate::core::list_db;
 pub use crate::event_loop::enter_main_loop; // for kickstart/main
 pub use crate::kickstart::kick; // for bin/kickgen
-pub use crate::search::genetic_search; // for kickstart/main // for main
+pub use crate::search::genetic_search; // for kickstart/main
 
 pub(crate) mod common {
-    pub use quicli::prelude::*;
-    pub type Result<T> = std::result::Result<T, Error>;
+    pub use gut::prelude::*;
     pub use gosh::gchemol;
 }
 

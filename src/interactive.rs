@@ -26,7 +26,7 @@ impl Command {
 }
 
 #[derive(StructOpt, Debug)]
-#[structopt(raw(setting = "structopt::clap::AppSettings::VersionlessSubcommands"))]
+#[structopt(setting = structopt::clap::AppSettings::VersionlessSubcommands)]
 pub enum Action {
     /// Quit REPL shell.
     #[structopt(name = "quit", alias = "q", alias = "exit")]
@@ -97,6 +97,8 @@ pub(crate) fn start_repl(control_flag: std::sync::Arc<JobFlag>) -> Result<bool> 
                 }
 
                 Ok(Action::Quit {}) => {
+                    let flag = JobType::Run.flag();
+                    control_flag.store(flag, std::sync::atomic::Ordering::SeqCst);
                     break;
                 }
 

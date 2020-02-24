@@ -70,7 +70,7 @@ impl EvaluatedGenome {
 
 // [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*database][database:1]]
 use self::db::KICKSTART_DB_CONNECTION as Db;
-use gosh_db::prelude::*;
+use gosh::db::prelude::*;
 
 impl Collection for EvaluatedGenome {
     fn collection_name() -> String {
@@ -117,8 +117,8 @@ impl MolGenome {
 // global database connection
 mod db {
     use crate::common::*;
-    use gosh_db::prelude::*;
-    use gosh_db::DbConnection;
+    use gosh::db::prelude::*;
+    use gosh::db::DbConnection;
 
     lazy_static! {
         pub(super) static ref KICKSTART_DB_CONNECTION: DbConnection = {
@@ -138,7 +138,7 @@ mod db {
 // genome/molecule mapping
 // genotype <=> phenotype conversion
 
-// [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*genome/molecule%20mapping][genome/molecule mapping:1]]
+// [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*genome/molecule mapping][genome/molecule mapping:1]]
 const GENOME_NAME_LENGTH: usize = 8;
 
 pub(crate) trait ToGenome {
@@ -192,7 +192,7 @@ fn encode_molecule(mol: &Molecule) -> MolGenome {
 
 // job control
 
-// [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*job%20control][job control:1]]
+// [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*job control][job control:1]]
 use std::sync::atomic;
 
 pub(crate) type JobFlag = atomic::AtomicUsize;
@@ -242,7 +242,7 @@ mod test {
 // public
 
 // [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*public][public:1]]
-use gosh::models::*;
+use gosh::model::*;
 
 /// avoid recalculation with database caching
 #[derive(Debug, Clone)]

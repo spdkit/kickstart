@@ -5,9 +5,9 @@ use std::collections::HashSet;
 
 use gosh::gchemol;
 
-use gchemol::geometry::rand_rotate;
 use gchemol::prelude::*;
 use gchemol::Molecule;
+use gchemol_old::{geometry::rand_rotate};
 
 use crate::common::*;
 // imports:1 ends here
@@ -70,7 +70,6 @@ pub(crate) fn plane_cut_and_splice(mol1: &Molecule, mol2: &Molecule) -> Result<M
         // check if number of atoms is correct
         if above1.len() + below2.len() == natoms {
             // check if element types is correct
-
             let s1: Vec<_> = above1.iter().map(|&i| symbols[i]).collect();
 
             let mut s2: Vec<_> = below2.iter().map(|&i| symbols[i]).collect();

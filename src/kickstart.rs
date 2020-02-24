@@ -3,7 +3,7 @@
 // [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*imports][imports:1]]
 use std::collections::HashMap;
 
-use gosh::gchemol::geometry::{rand_points_within_sphere, rand_rotate};
+use gchemol_old::geometry::{rand_points_within_sphere, rand_rotate};
 use gosh::gchemol::prelude::*;
 use gosh::gchemol::{io, Atom, Molecule};
 
@@ -49,9 +49,9 @@ fn combine_fragments_into_one(fragments: &Vec<Molecule>) -> Molecule {
         }
     }
 
-    mol.educate()
-        .with_context(|_| format!("failed to educate"))
-        .unwrap();
+    mol.educate().with_context(|_| {
+        format!("failed to educate")
+    }).unwrap();
 
     mol
 }
