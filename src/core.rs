@@ -2,9 +2,10 @@
 
 // [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*imports][imports:1]]
 use crate::common::*;
-
-use gchemol::{Atom, Molecule};
 use gosh::gchemol;
+
+use gchemol::compat::*;
+use gchemol::{Atom, Molecule};
 use spdkit::prelude::*;
 // imports:1 ends here
 
@@ -70,7 +71,7 @@ impl EvaluatedGenome {
 
 // [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*database][database:1]]
 use self::db::KICKSTART_DB_CONNECTION as Db;
-use gosh_db::prelude::*;
+use gosh::db::prelude::*;
 
 impl Collection for EvaluatedGenome {
     fn collection_name() -> String {
@@ -117,8 +118,8 @@ impl MolGenome {
 // global database connection
 mod db {
     use crate::common::*;
-    use gosh_db::prelude::*;
-    use gosh_db::DbConnection;
+    use gosh::db::prelude::*;
+    use gosh::db::DbConnection;
 
     lazy_static! {
         pub(super) static ref KICKSTART_DB_CONNECTION: DbConnection = {
@@ -138,7 +139,7 @@ mod db {
 // genome/molecule mapping
 // genotype <=> phenotype conversion
 
-// [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*genome/molecule%20mapping][genome/molecule mapping:1]]
+// [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*genome/molecule mapping][genome/molecule mapping:1]]
 const GENOME_NAME_LENGTH: usize = 8;
 
 pub(crate) trait ToGenome {
@@ -155,12 +156,8 @@ impl MolGenome {
     pub(crate) fn decode(&self) -> Molecule {
         use educate::prelude::*;
 
-        let mut mol = Molecule::new(&self.name);
-
-        for (n, [x, y, z]) in &self.data {
-            let a = Atom::build().element(*n).position(*x, *y, *z).finish();
-            mol.add_atom(a);
-        }
+        let mut mol = Molecule::from_atoms(self.data.clone());
+        mol.set_title(&self.name);
 
         mol.educated_rebond().unwrap();
         mol
@@ -176,7 +173,7 @@ fn random_name(n: usize) -> String {
 
 fn encode_molecule(mol: &Molecule) -> MolGenome {
     let mut g = vec![];
-    for a in mol.sorted().atoms() {
+    for (_, a) in mol.sorted().atoms() {
         let n = a.number();
         let p = a.position();
         g.push((n, p));
@@ -192,7 +189,7 @@ fn encode_molecule(mol: &Molecule) -> MolGenome {
 
 // job control
 
-// [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*job%20control][job control:1]]
+// [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*job control][job control:1]]
 use std::sync::atomic;
 
 pub(crate) type JobFlag = atomic::AtomicUsize;
@@ -242,7 +239,7 @@ mod test {
 // public
 
 // [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*public][public:1]]
-use gosh::models::*;
+use gosh::model::*;
 
 /// avoid recalculation with database caching
 #[derive(Debug, Clone)]
@@ -263,8 +260,8 @@ impl ToGenome for ModelProperties {
     }
 
     fn encode_as_evaluated(&self) -> EvaluatedGenome {
-        let energy = self.energy.expect("no energy");
-        let mol = self.molecule.as_ref().expect("no molecule");
+        let energy = self.get_energy().expect("no energy");
+        let mol = self.get_molecule().as_ref().expect("no molecule").clone();
         let evaluated = EvaluatedGenome {
             genome: encode_molecule(mol),
             energy,
