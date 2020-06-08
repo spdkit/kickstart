@@ -1,13 +1,9 @@
-// imports
-
 // [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*imports][imports:1]]
 use gosh::model::*;
 use gchemol::Molecule;
 
 use crate::common::*;
 // imports:1 ends here
-
-// core
 
 // [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*core][core:1]]
 trait KickModel {
@@ -40,7 +36,7 @@ impl KickModel for Molecule {
 fn get_energy(mol: &Molecule, runfile: &str) -> Result<f64> {
     debug!("calculate single point energy using bbm model ...");
 
-    let mut bbm = BlackBox::from_dir(runfile);
+    let mut bbm = BlackBox::from_dir(runfile)?;
     let mr = bbm.compute(mol)?;
 
     if let Some(energy) = mr.get_energy() {
@@ -57,7 +53,7 @@ fn get_optimized_molecule(mol: &Molecule, runfile: &str) -> Result<Molecule> {
 
     // avoid bad geometry
     let mut mol = mol.clone();
-    let mut bbm = BlackBox::from_dir(runfile);
+    let mut bbm = BlackBox::from_dir(runfile)?;
 
     match bbm.compute(&mol) {
         Ok(mr) => {
@@ -83,8 +79,6 @@ fn get_optimized_molecule(mol: &Molecule, runfile: &str) -> Result<Molecule> {
 }
 // core:1 ends here
 
-// calculator
-
 // [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*calculator][calculator:1]]
 struct Calculator {
     bunch_mode: bool,
@@ -94,7 +88,7 @@ struct Calculator {
 impl Calculator {
     /// Construct a calculator using BlackBox model as configured in `dir`.
     fn new(dir: &str) -> Self {
-        let bbm = BlackBox::from_dir(dir);
+        let bbm = BlackBox::from_dir(dir).expect("bbm failure");
         Self {
             bunch_mode: false,
             bbm,
@@ -124,8 +118,6 @@ impl Calculator {
     }
 }
 // calculator:1 ends here
-
-// runner
 
 // [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*runner][runner:1]]
 struct Runner {
@@ -186,8 +178,6 @@ impl Runner {
 }
 // runner:1 ends here
 
-// public
-
 // [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*public][public:1]]
 use crate::core::*;
 
@@ -201,8 +191,6 @@ pub(crate) fn compute(mols: Vec<Molecule>) -> Result<Vec<ModelProperties>> {
     runner.compute(mols)
 }
 // public:1 ends here
-
-// test
 
 // [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*test][test:1]]
 #[test]
