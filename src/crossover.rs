@@ -1,22 +1,18 @@
-// imports
-
-// [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*imports][imports:1]]
+// [[file:../kickstart.note::5e25faec][5e25faec]]
 use std::collections::HashSet;
 
 use gosh::gchemol;
 
 // FIXME: remove
 use gchemol::compat::*;
+use gchemol::geom::random::rand_rotate;
 use gchemol::prelude::*;
 use gchemol::Molecule;
-use gchemol::geom::rand_rotate;
 
 use crate::common::*;
-// imports:1 ends here
+// 5e25faec ends here
 
-// core
-
-// [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*core][core:1]]
+// [[file:../kickstart.note::*core][core:1]]
 // return indices of atoms lying above the cutting plane
 fn indices_above_plane(positions: &Vec<[f64; 3]>) -> HashSet<usize> {
     positions
@@ -109,9 +105,7 @@ pub(crate) fn plane_cut_and_splice(mol1: &Molecule, mol2: &Molecule) -> Result<M
 }
 // core:1 ends here
 
-// test
-
-// [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*test][test:1]]
+// [[file:../kickstart.note::*test][test:1]]
 #[test]
 fn test_plane_cut_splice() {
     let mut mols1 = gchemol::io::read_all("tests/files/c6h6-geom1.mol2").expect("geom1");

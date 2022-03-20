@@ -1,20 +1,16 @@
-// imports
-
-// [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*imports][imports:1]]
+// [[file:../kickstart.note::957b83c7][957b83c7]]
 use gosh::gchemol;
 use std::collections::HashMap;
 
 use gchemol::compat::*;
+use gchemol::geom::random::{rand_points_within_sphere, rand_rotate};
 use gchemol::prelude::*;
 use gchemol::{io, Atom, Molecule};
-use gchemol::geom::{rand_points_within_sphere, rand_rotate};
 
 use crate::common::*;
-// imports:1 ends here
+// 957b83c7 ends here
 
-// new
-
-// [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*new][new:1]]
+// [[file:../kickstart.note::*new][new:1]]
 /// rotate the molecule in place
 fn rotate_molecule(mol: &mut Molecule) -> Result<()> {
     let positions = mol.positions_vec();
@@ -88,9 +84,7 @@ fn kickstart(mut mols: &mut Vec<Molecule>, r: f64) -> Result<Vec<Molecule>> {
 }
 // new:1 ends here
 
-// pub
-
-// [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*pub][pub:1]]
+// [[file:../kickstart.note::*pub][pub:1]]
 // FIXME: read formula
 pub fn kick(mol: &Molecule) -> Result<Molecule> {
     let mut mols = mol.fragment();
@@ -131,9 +125,7 @@ pub fn kick_bunch(parent_mol: &Molecule, nbunch: usize) -> Vec<Molecule> {
 }
 // pub:1 ends here
 
-// test
-
-// [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*test][test:1]]
+// [[file:../kickstart.note::*test][test:1]]
 #[test]
 fn test_distribute() {
     use gosh::gchemol::prelude::*;
