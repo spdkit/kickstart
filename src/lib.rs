@@ -1,6 +1,4 @@
-// mods
-
-// [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*mods][mods:1]]
+// [[file:../kickstart.note::5bd520e5][5bd520e5]]
 #[macro_use]
 extern crate lazy_static;
 
@@ -15,11 +13,9 @@ mod kickstart;
 mod model;
 mod mutation;
 mod search;
-// mods:1 ends here
+// 5bd520e5 ends here
 
-// exports
-
-// [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*exports][exports:1]]
+// [[file:../kickstart.note::*exports][exports:1]]
 pub use gosh::gchemol;
 
 pub use crate::config::print_default_config; // for kickstart/main

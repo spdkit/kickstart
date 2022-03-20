@@ -1,16 +1,12 @@
-// imports
-
-// [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*imports][imports:1]]
+// [[file:../kickstart.note::*imports][imports:1]]
 use crate::common::*;
 use crate::core::*;
 
+use gut::cli::*;
 use linefeed::{Interface, ReadResult};
-use structopt::*;
 // imports:1 ends here
 
-// commands
-
-// [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*commands][commands:1]]
+// [[file:../kickstart.note::659eb3c7][659eb3c7]]
 /// A commander for interactive interpreter
 #[derive(Default)]
 pub struct Command {
@@ -26,7 +22,6 @@ impl Command {
 }
 
 #[derive(StructOpt, Debug)]
-#[structopt(setting = structopt::clap::AppSettings::VersionlessSubcommands)]
 pub enum Action {
     /// Quit REPL shell.
     #[structopt(name = "quit", alias = "q", alias = "exit")]
@@ -44,11 +39,9 @@ pub enum Action {
     #[structopt(name = "edit", alias = "e")]
     Edit {},
 }
-// commands:1 ends here
+// 659eb3c7 ends here
 
-// core
-
-// [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*core][core:1]]
+// [[file:../kickstart.note::*core][core:1]]
 impl Command {
     fn apply(&mut self, action: &Action) -> Result<()> {
         match action {
@@ -63,9 +56,7 @@ impl Command {
 }
 // core:1 ends here
 
-// pub/repl
-
-// [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*pub/repl][pub/repl:1]]
+// [[file:../kickstart.note::86c69857][86c69857]]
 /// Return new seeds with user changes in interactive way.
 ///
 /// If return true, user ask for termination.
@@ -124,7 +115,7 @@ pub(crate) fn start_repl(control_flag: std::sync::Arc<JobFlag>) -> Result<bool> 
 
                 // show subcommand usage
                 Err(e) => {
-                    println!("{}", e.message);
+                    println!("{e:?}");
                 }
             }
         } else {
@@ -150,11 +141,8 @@ fn load_genomes_from_file() -> Result<Vec<MolGenome>> {
     use gchemol::prelude::*;
 
     let mols: Vec<_> = gchemol::io::read_all("/tmp/test.mol2")?;
-    let seeds: Vec<_> = crate::model::compute(mols)?
-        .iter()
-        .map(|mp| mp.encode())
-        .collect();
+    let seeds: Vec<_> = crate::model::compute(mols)?.iter().map(|mp| mp.encode()).collect();
 
     Ok(seeds)
 }
-// pub/repl:1 ends here
+// 86c69857 ends here

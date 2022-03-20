@@ -1,28 +1,25 @@
-// imports
-
-// [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*imports][imports:1]]
+// [[file:../kickstart.note::*imports][imports:1]]
 use std::path::PathBuf;
 // imports:1 ends here
 
-// cmdline
-
-// [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*cmdline][cmdline:1]]
+// [[file:../kickstart.note::ae9bb309][ae9bb309]]
+use gut::cli::*;
 use gut::prelude::*;
-use structopt::*;
 
 /// Chemical structure explorer
 #[derive(Debug, StructOpt)]
+#[clap(author, version, about)]
 struct Cli {
     /// Prints default configuration.
-    #[structopt(long = "print", short = "p")]
+    #[structopt(long = "print", short = 'p')]
     print: bool,
 
     /// List calculated items in database.
-    #[structopt(long = "list", short = "l")]
+    #[structopt(long = "list", short = 'l')]
     list: bool,
 
     /// Run genetic search.
-    #[structopt(long = "run", short = "r")]
+    #[structopt(long = "run", short = 'r')]
     run: bool,
 }
 
@@ -32,7 +29,7 @@ fn main() -> Result<()> {
     let pkg_version = env!("CARGO_PKG_VERSION");
     let pkg_name = env!("CARGO_PKG_NAME");
 
-    let args = Cli::from_args();
+    let args = Cli::parse();
 
     if args.print {
         println!("{:#^72}", " default configuration ");
@@ -51,4 +48,4 @@ fn main() -> Result<()> {
 
     Ok(())
 }
-// cmdline:1 ends here
+// ae9bb309 ends here

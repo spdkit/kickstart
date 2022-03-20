@@ -1,8 +1,6 @@
-// main
-
-// [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*main][main:1]]
+// [[file:../../kickstart.note::b048123f][b048123f]]
+use gut::cli::*;
 use gut::prelude::*;
-use structopt::*;
 
 use gosh::gchemol;
 use gosh::gchemol::prelude::*;
@@ -10,6 +8,7 @@ use gosh::gchemol::Molecule;
 
 /// Generate randomly mutated structures
 #[derive(Debug, StructOpt)]
+#[clap(author, version, about)]
 struct Cli {
     /// Path to input file containing molecule structure.
     inpfile: String,
@@ -18,16 +17,16 @@ struct Cli {
     outfile: String,
 
     /// The number of molecules to be generated.
-    #[structopt(short = "n", default_value = "1")]
+    #[structopt(short = 'n', default_value = "1")]
     number_of_molecules: usize,
 
     /// The number of molecules to be generated.
-    #[structopt(short = "m", default_value = "1")]
+    #[structopt(short = 'm', default_value = "1")]
     mutation_degree: usize,
 }
 
 fn main() -> Result<()> {
-    let args = Cli::from_args();
+    let args = Cli::parse();
     gut::cli::setup_logger();
 
     let old_mol = Molecule::from_file(args.inpfile)?;
@@ -40,4 +39,4 @@ fn main() -> Result<()> {
     gchemol::io::write(args.outfile, &mols);
     Ok(())
 }
-// main:1 ends here
+// b048123f ends here

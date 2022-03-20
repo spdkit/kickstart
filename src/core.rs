@@ -1,6 +1,4 @@
-// imports
-
-// [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*imports][imports:1]]
+// [[file:../kickstart.note::*imports][imports:1]]
 use crate::common::*;
 use gosh::gchemol;
 
@@ -9,9 +7,7 @@ use gchemol::{Atom, Molecule};
 use spdkit::prelude::*;
 // imports:1 ends here
 
-// genome
-
-// [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*genome][genome:1]]
+// [[file:../kickstart.note::*genome][genome:1]]
 /// The Genotype for molecule
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub(crate) struct MolGenome {
@@ -49,9 +45,7 @@ impl MolGenome {
 }
 // genome:1 ends here
 
-// evaluated
-
-// [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*evaluated][evaluated:1]]
+// [[file:../kickstart.note::*evaluated][evaluated:1]]
 /// The evaluated energy with molecule structure.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub(crate) struct EvaluatedGenome {
@@ -67,17 +61,15 @@ impl EvaluatedGenome {
 }
 // evaluated:1 ends here
 
-// database
-
-// [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*database][database:1]]
+// [[file:../kickstart.note::376404cc][376404cc]]
 use self::db::KICKSTART_DB_CONNECTION as Db;
 use gosh::db::prelude::*;
 
-impl Collection for EvaluatedGenome {
-    fn collection_name() -> String {
-        "EvaluatedGenome".into()
-    }
-}
+// impl Collection for EvaluatedGenome {
+//     fn collection_name() -> String {
+//         "EvaluatedGenome".into()
+//     }
+// }
 
 impl EvaluatedGenome {
     pub(crate) fn number_of_evaluations() -> usize {
@@ -134,12 +126,9 @@ mod db {
         };
     }
 }
-// database:1 ends here
+// 376404cc ends here
 
-// genome/molecule mapping
-// genotype <=> phenotype conversion
-
-// [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*genome/molecule mapping][genome/molecule mapping:1]]
+// [[file:../kickstart.note::*genome/molecule mapping][genome/molecule mapping:1]]
 const GENOME_NAME_LENGTH: usize = 8;
 
 pub(crate) trait ToGenome {
@@ -187,9 +176,7 @@ fn encode_molecule(mol: &Molecule) -> MolGenome {
 }
 // genome/molecule mapping:1 ends here
 
-// job control
-
-// [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*job control][job control:1]]
+// [[file:../kickstart.note::*job control][job control:1]]
 use std::sync::atomic;
 
 pub(crate) type JobFlag = atomic::AtomicUsize;
@@ -236,9 +223,7 @@ mod test {
 }
 // job control:1 ends here
 
-// public
-
-// [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*public][public:1]]
+// [[file:../kickstart.note::*public][public:1]]
 use gosh::model::*;
 
 /// avoid recalculation with database caching
