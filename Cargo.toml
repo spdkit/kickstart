@@ -22,5 +22,5 @@ crossbeam-channel = "0.3"
 gut = { version="0.2", package="gchemol-gut" }
 gosh = { version=">=0.0.29", features=["adhoc"] }
 spdkit = { version="0.0.18" }
-educate = { path = "../structure-education" }
+educate = { version = "0.1", path = "../structure-education", features=["adhoc"] }
 # 7f0782c0 ends here
