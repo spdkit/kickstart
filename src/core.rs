@@ -253,9 +253,7 @@ impl ToGenome for ModelProperties {
         };
         let key = evaluated.uid();
         trace!("saving result with key {}", key);
-        evaluated
-            .put_into_collection(&Db, key)
-            .expect("db write failure");
+        evaluated.put_into_collection(&Db, key).expect("db write failure");
 
         evaluated
     }

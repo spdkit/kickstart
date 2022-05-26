@@ -1,6 +1,6 @@
 // [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*imports][imports:1]]
-use gosh::model::*;
 use gchemol::Molecule;
+use gosh::model::*;
 
 use crate::common::*;
 // imports:1 ends here
@@ -89,10 +89,7 @@ impl Calculator {
     /// Construct a calculator using BlackBox model as configured in `dir`.
     fn new(dir: &str) -> Self {
         let bbm = BlackBox::from_dir(dir).expect("bbm failure");
-        Self {
-            bunch_mode: false,
-            bbm,
-        }
+        Self { bunch_mode: false, bbm }
     }
 
     fn with_bunch_mode(mut self, enabled: bool) -> Self {
@@ -104,9 +101,7 @@ impl Calculator {
     fn calculate(&mut self, mols: &[Molecule]) -> Result<Vec<ModelProperties>> {
         let results: Vec<_> = if self.bunch_mode {
             debug!("Calculate {} molecules in bunch mode.", mols.len());
-            self.bbm
-                .compute_bunch(mols)
-                .context("opt failed in bundle mode")?
+            self.bbm.compute_bunch(mols).context("opt failed in bundle mode")?
         } else {
             // not possible to parallel
             mols.iter()
@@ -134,9 +129,7 @@ impl Runner {
 
         // put calculators into runner queue
         let (sender, receiver) = unbounded();
-        let calculators: Vec<_> = (0..n)
-            .map(|_| Calculator::new(bbm_dir).with_bunch_mode(bunch_mode))
-            .collect();
+        let calculators: Vec<_> = (0..n).map(|_| Calculator::new(bbm_dir).with_bunch_mode(bunch_mode)).collect();
         for calc in calculators {
             sender.send(calc).unwrap();
         }
@@ -155,11 +148,7 @@ impl Runner {
         let sender = self.runner_tx.take().unwrap();
         let receiver = self.runner_rx.take().unwrap();
 
-        let nbunch = if self.bunch_mode {
-            self.n_calculators
-        } else {
-            1
-        };
+        let nbunch = if self.bunch_mode { self.n_calculators } else { 1 };
         let bunches: Vec<_> = mols.chunks(nbunch).collect();
         let results: Vec<_> = bunches
             .into_par_iter()

@@ -40,9 +40,7 @@ fn signal_channel(control_flag: std::sync::Arc<JobFlag>) -> Result<cbchan::Recei
 type Job = Option<String>;
 
 use std::sync::atomic::Ordering;
-fn runcmd_channel(
-    control: std::sync::Arc<JobFlag>,
-) -> Result<(cbchan::Sender<Job>, cbchan::Receiver<Job>)> {
+fn runcmd_channel(control: std::sync::Arc<JobFlag>) -> Result<(cbchan::Sender<Job>, cbchan::Receiver<Job>)> {
     let (sender, receiver) = cbchan::unbounded();
 
     let t = std::time::Duration::from_secs(2);

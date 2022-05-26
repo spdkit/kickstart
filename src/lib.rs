@@ -25,8 +25,8 @@ pub use crate::kickstart::kick; // for bin/kickgen
 pub use crate::search::genetic_search; // for kickstart/main
 
 pub(crate) mod common {
-    pub use gut::prelude::*;
     pub use gosh::gchemol;
+    pub use gut::prelude::*;
 }
 
 pub mod adhoc {
