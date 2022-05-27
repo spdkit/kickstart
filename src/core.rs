@@ -7,10 +7,11 @@ use gchemol::{Atom, Molecule};
 use spdkit::prelude::*;
 // imports:1 ends here
 
-// [[file:../kickstart.note::*genome][genome:1]]
+// [[file:../kickstart.note::62013f9d][62013f9d]]
 /// The Genotype for molecule
+// bare data for evolution
 #[derive(Clone, Debug, Serialize, Deserialize)]
-pub(crate) struct MolGenome {
+pub struct MolGenome {
     name: String,
     age: usize,
     data: Vec<(usize, [f64; 3])>,
@@ -27,28 +28,28 @@ impl spdkit::individual::Genome for MolGenome {}
 
 const BETA_FACTOR: f64 = 0.1;
 impl MolGenome {
-    pub(crate) fn uid(&self) -> &str {
+    pub fn uid(&self) -> &str {
         &self.name
     }
 
     /// Healthy point.
-    pub(crate) fn hp(&self) -> f64 {
+    pub fn hp(&self) -> f64 {
         (-BETA_FACTOR * self.age as f64).exp()
     }
 
     /// Return a cloned MolGenome with larger age.
-    pub(crate) fn aged(&self) -> Self {
+    pub fn aged(&self) -> Self {
         let mut new = self.clone();
         new.age += 1;
         new
     }
 }
-// genome:1 ends here
+// 62013f9d ends here
 
-// [[file:../kickstart.note::*evaluated][evaluated:1]]
+// [[file:../kickstart.note::47e1ae28][47e1ae28]]
 /// The evaluated energy with molecule structure.
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub(crate) struct EvaluatedGenome {
+pub struct EvaluatedGenome {
     pub genome: MolGenome,
     pub energy: f64,
 }
@@ -59,23 +60,19 @@ impl EvaluatedGenome {
         self.genome.uid()
     }
 }
-// evaluated:1 ends here
+// 47e1ae28 ends here
 
 // [[file:../kickstart.note::376404cc][376404cc]]
 use self::db::KICKSTART_DB_CONNECTION as Db;
 use gosh::db::prelude::*;
 
-// impl Collection for EvaluatedGenome {
-//     fn collection_name() -> String {
-//         "EvaluatedGenome".into()
-//     }
-// }
-
 impl EvaluatedGenome {
-    pub(crate) fn number_of_evaluations() -> usize {
+    /// Return total number of evaluations
+    pub fn number_of_evaluations() -> usize {
         Self::collection_size(&Db).expect("db: list failure") as usize
     }
 
+    /// List items found in checkpointing database
     pub fn list_db() -> Result<()> {
         let mut items = Self::list_collection(&Db)?;
         if items.is_empty() {
@@ -100,7 +97,7 @@ pub fn list_db() -> Result<()> {
 
 impl MolGenome {
     /// Retrieve energy from db
-    pub(crate) fn energy(&self) -> f64 {
+    pub fn energy(&self) -> f64 {
         let key = self.uid();
         let evaluated = EvaluatedGenome::get_from_collection(&Db, key).expect("db: read energy failure");
         evaluated.energy
@@ -128,10 +125,10 @@ mod db {
 }
 // 376404cc ends here
 
-// [[file:../kickstart.note::*genome/molecule mapping][genome/molecule mapping:1]]
+// [[file:../kickstart.note::e4f2cc3b][e4f2cc3b]]
 const GENOME_NAME_LENGTH: usize = 8;
 
-pub(crate) trait ToGenome {
+pub trait ToGenome {
     fn encode(&self) -> MolGenome;
 
     // FIXME: adhoc
@@ -142,12 +139,13 @@ pub(crate) trait ToGenome {
 
 impl MolGenome {
     /// Re-create molecule from MolGenome
-    pub(crate) fn decode(&self) -> Molecule {
+    pub fn decode(&self) -> Molecule {
         use educate::prelude::*;
 
         let mut mol = Molecule::from_atoms(self.data.clone());
         mol.set_title(&self.name);
 
+        // recreate connectivity from current positions
         mol.educated_rebond().unwrap();
         mol
     }
@@ -174,15 +172,15 @@ fn encode_molecule(mol: &Molecule) -> MolGenome {
         data: g,
     }
 }
-// genome/molecule mapping:1 ends here
+// e4f2cc3b ends here
 
-// [[file:../kickstart.note::*job control][job control:1]]
+// [[file:../kickstart.note::f51a8eee][f51a8eee]]
 use std::sync::atomic;
 
-pub(crate) type JobFlag = atomic::AtomicUsize;
+pub type JobFlag = atomic::AtomicUsize;
 
 #[derive(Eq, PartialEq, Debug)]
-pub(crate) enum JobType {
+pub enum JobType {
     /// Run program
     Run,
     /// Stop program.
@@ -192,7 +190,7 @@ pub(crate) enum JobType {
 }
 
 impl JobType {
-    pub(crate) fn from(flag: &JobFlag) -> Self {
+    pub fn from(flag: &JobFlag) -> Self {
         match flag.load(atomic::Ordering::SeqCst) {
             0 => Self::Run,
             1 => Self::Stop,
@@ -201,7 +199,7 @@ impl JobType {
         }
     }
 
-    pub(crate) fn flag(&self) -> usize {
+    pub fn flag(&self) -> usize {
         match self {
             Self::Run => 0,
             Self::Stop => 1,
@@ -221,14 +219,14 @@ mod test {
         dbg!(flag);
     }
 }
-// job control:1 ends here
+// f51a8eee ends here
 
-// [[file:../kickstart.note::*public][public:1]]
+// [[file:../kickstart.note::44895e0d][44895e0d]]
 use gosh::model::*;
 
 /// avoid recalculation with database caching
 #[derive(Debug, Clone)]
-pub(crate) struct MolIndividual;
+pub struct MolIndividual;
 
 /// for Valuer: valuer.create_individuals
 impl EvaluateObjectiveValue<MolGenome> for MolIndividual {
@@ -260,7 +258,7 @@ impl ToGenome for ModelProperties {
 }
 
 /// Return the number of evaluation of molecules
-pub(crate) fn get_number_of_evaluations() -> usize {
+pub fn get_number_of_evaluations() -> usize {
     EvaluatedGenome::number_of_evaluations()
 }
-// public:1 ends here
+// 44895e0d ends here

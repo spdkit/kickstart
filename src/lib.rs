@@ -28,6 +28,8 @@ use crate::search::genetic_search; // for kickstart/main
 mod common {
     pub use gosh::gchemol;
     pub use gut::prelude::*;
+
+    pub use std::path::{Path, PathBuf};
 }
 // 73ac23dc ends here
 
@@ -41,3 +43,21 @@ fn app_version() -> String {
     format!("{version} ({commit_hash} {commit_date})")
 }
 // 728878b3 ends here
+
+// [[file:../kickstart.note::58ff7b77][58ff7b77]]
+#[cfg(feature = "adhoc")]
+/// Docs for local mods
+pub mod docs {
+    macro_rules! export_doc {
+        ($l:ident) => {
+            pub mod $l {
+                pub use crate::$l::*;
+            }
+        };
+    }
+
+    export_doc!(core);
+    export_doc!(exploitation);
+    export_doc!(config);
+}
+// 58ff7b77 ends here

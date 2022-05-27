@@ -1,11 +1,11 @@
-// [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*imports][imports:1]]
-use gchemol::Molecule;
+// [[file:../kickstart.note::*imports][imports:1]]
 use gosh::model::*;
+use gchemol::Molecule;
 
 use crate::common::*;
 // imports:1 ends here
 
-// [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*core][core:1]]
+// [[file:../kickstart.note::*core][core:1]]
 trait KickModel {
     fn energy(&self) -> f64;
     fn get_energy(&self) -> Result<f64>;
@@ -79,7 +79,7 @@ fn get_optimized_molecule(mol: &Molecule, runfile: &str) -> Result<Molecule> {
 }
 // core:1 ends here
 
-// [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*calculator][calculator:1]]
+// [[file:../kickstart.note::4d04f422][4d04f422]]
 struct Calculator {
     bunch_mode: bool,
     bbm: BlackBox,
@@ -97,7 +97,7 @@ impl Calculator {
         self
     }
 
-    /// Return the calculated results using Black-Box Model.
+    /// Return the calculated results using BlackBox Model.
     fn calculate(&mut self, mols: &[Molecule]) -> Result<Vec<ModelProperties>> {
         let results: Vec<_> = if self.bunch_mode {
             debug!("Calculate {} molecules in bunch mode.", mols.len());
@@ -112,9 +112,9 @@ impl Calculator {
         Ok(results)
     }
 }
-// calculator:1 ends here
+// 4d04f422 ends here
 
-// [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*runner][runner:1]]
+// [[file:../kickstart.note::b238b72d][b238b72d]]
 struct Runner {
     n_calculators: usize,
     bunch_mode: bool,
@@ -165,23 +165,35 @@ impl Runner {
         Ok(calculated)
     }
 }
-// runner:1 ends here
+// b238b72d ends here
 
-// [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*public][public:1]]
+// [[file:../kickstart.note::35efc986][35efc986]]
 use crate::core::*;
 
 /// setup a runner based on global config and compute a list of molecules.
-pub(crate) fn compute(mols: Vec<Molecule>) -> Result<Vec<ModelProperties>> {
+pub fn compute(mols: Vec<Molecule>) -> Result<Vec<ModelProperties>> {
+    debug!("Computing {} molecules ...", mols.len());
     let config = &crate::config::CONFIG;
 
     let n = config.number_of_calculators;
     let enable_bunch_mode = config.run_in_bunch_mode;
-    let mut runner = Runner::new(n, &config.bbm_dir, enable_bunch_mode);
-    runner.compute(mols)
-}
-// public:1 ends here
+    let mut bbm = BlackBoxModel::from_dir(&config.bbm_dir)?;
 
-// [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*test][test:1]]
+    // FIXME: adhoc hacking
+    mols.into_iter()
+        .map(|mut mol| {
+            bbm.compute(&mut mol).map(|mut mp| {
+                mp.set_molecule(mol);
+                mp
+            })
+        })
+        .collect()
+    // let mut runner = Runner::new(n, &config.bbm_dir, enable_bunch_mode);
+    // runner.compute(mols)
+}
+// 35efc986 ends here
+
+// [[file:../kickstart.note::*test][test:1]]
 #[test]
 #[ignore]
 fn test_concurrent_calculation() -> Result<()> {

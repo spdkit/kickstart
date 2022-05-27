@@ -84,6 +84,9 @@ impl KickGen {
 #[derive(Debug, StructOpt)]
 #[clap(author, version, about)]
 struct Cli {
+    #[structopt(flatten)]
+    verbose: gut::cli::Verbosity,
+
     /// Prints default configuration.
     #[structopt(long = "print", short = 'p')]
     print: bool,
@@ -98,9 +101,8 @@ struct Cli {
 }
 
 pub fn enter_main() -> Result<()> {
-    gut::cli::setup_logger();
-
     let args = Cli::parse();
+    args.verbose.setup_logger();
 
     if args.print {
         println!("{:#^72}", " default configuration ");

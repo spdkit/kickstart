@@ -1,13 +1,11 @@
-// imports
-
-// [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*imports][imports:1]]
+// [[file:../kickstart.note::0e41fb1a][0e41fb1a]]
 use serde::*;
 use toml;
-// imports:1 ends here
 
-// global
+use crate::common::*;
+// 0e41fb1a ends here
 
-// [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*global][global:1]]
+// [[file:../kickstart.note::*global][global:1]]
 lazy_static! {
     /// Global settings.
     pub static ref CONFIG: Config = {
@@ -20,9 +18,7 @@ lazy_static! {
 }
 // global:1 ends here
 
-// base
-
-// [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*base][base:1]]
+// [[file:../kickstart.note::f8080eb2][f8080eb2]]
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Config {
     /// The path to BlackBox Model (bbm) directory.
@@ -37,6 +33,9 @@ pub struct Config {
     pub molfile: String,
     /// Evolution search parameters
     pub search: Search,
+
+    /// If set, will enable minima hopping for local expolitation
+    pub mhm: Option<PathBuf>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Default)]
@@ -57,6 +56,7 @@ impl Default for Config {
             molfile: "test.mol2".into(),
             number_of_calculators: 1,
             run_in_bunch_mode: false,
+            mhm: None,
             search: Search {
                 population_size: 10,
                 max_generations: 10,
@@ -81,4 +81,4 @@ fn test_config() {
     let x = toml::to_string(&config).unwrap();
     println!("{:#?}", x);
 }
-// base:1 ends here
+// f8080eb2 ends here

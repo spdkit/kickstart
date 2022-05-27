@@ -1,6 +1,4 @@
-// imports
-
-// [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*imports][imports:1]]
+// [[file:../kickstart.note::*imports][imports:1]]
 use crate::common::*;
 use crate::config::Config;
 use crate::core::*;
@@ -14,10 +12,7 @@ use spdkit::prelude::*;
 use spdkit::*;
 // imports:1 ends here
 
-// duplicates
-// Remove duplicates in population based on energy criterion.
-
-// [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*duplicates][duplicates:1]]
+// [[file:../kickstart.note::*duplicates][duplicates:1]]
 trait RemoveDuplicates {
     fn remove_duplicates_by_energy(&mut self, threshold: f64) -> usize;
 }
@@ -45,9 +40,7 @@ impl RemoveDuplicates for Vec<Individual<MolGenome>> {
 }
 // duplicates:1 ends here
 
-// fitness
-
-// [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*fitness][fitness:1]]
+// [[file:../kickstart.note::*fitness][fitness:1]]
 #[derive(Clone)]
 struct MinimizeEnergyWithAging {
     fitness_eval: spdkit::fitness::MinimizeEnergy,
@@ -74,9 +67,7 @@ impl EvaluateFitness<MolGenome> for MinimizeEnergyWithAging {
 }
 // fitness:1 ends here
 
-// crossover
-
-// [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*crossover][crossover:1]]
+// [[file:../kickstart.note::*crossover][crossover:1]]
 use spdkit::population::*;
 
 #[derive(Debug, Clone)]
@@ -113,9 +104,7 @@ impl VariationOperator<MolGenome> for CutAndSpliceCrossOver {
 }
 // crossover:1 ends here
 
-// next parent
-
-// [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*next parent][next parent:1]]
+// [[file:../kickstart.note::*next parent][next parent:1]]
 fn next_parent(cur_population: &Population<MolGenome>) -> MolGenome {
     let p_add_global_kick = 0.2;
     let p_add_global_crossover = 0.3;
@@ -154,10 +143,7 @@ fn next_parent(cur_population: &Population<MolGenome>) -> MolGenome {
 }
 // next parent:1 ends here
 
-// evolve
-// core part starts here
-
-// [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*evolve][evolve:1]]
+// [[file:../kickstart.note::3daf9993][3daf9993]]
 struct MyAlgorithm {}
 
 impl Default for MyAlgorithm {
@@ -177,15 +163,21 @@ where
     let n = cur_population.size();
     let p_add_global_kick = 0.2;
     let p_add_global_crossover = 0.3;
+    let config = &crate::config::CONFIG;
 
+    // vds exploitation in parallel
     let n_local_search = n;
     info!("vds: select {} genomes for exploitation", n_local_search);
-    // vds exploitation in parallel
+    let mut exploit = crate::exploitation::Exploitation::default();
+    if let Some(mhm_conf) = &config.mhm {
+        exploit.set_minima_hopping(mhm_conf);
+        exploit.set_bbm_dir(config.bbm_dir.as_ref());
+    }
     let required_genomes: Vec<_> = (0..n_local_search)
         .into_par_iter()
         .map(|_| {
             let parent = next_parent(cur_population);
-            variable_depth_search(&parent)
+            exploit.perform_local_search(&parent)
         })
         .collect();
 
@@ -231,11 +223,9 @@ where
         evolve_core(cur_population, valuer)
     }
 }
-// evolve:1 ends here
+// 3daf9993 ends here
 
-// hall of fame
-
-// [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*hall of fame][hall of fame:1]]
+// [[file:../kickstart.note::*hall of fame][hall of fame:1]]
 struct HallOfFame {
     energy: f64,
     igeneration: usize,
@@ -243,18 +233,22 @@ struct HallOfFame {
 
 impl HallOfFame {
     fn new(energy: f64, igeneration: usize) -> Self {
-        Self { energy, igeneration }
+        Self {
+            energy,
+            igeneration,
+        }
     }
 
     fn summarize(&self) -> String {
-        format!("energy = {}, found in generation {}", self.energy, self.igeneration)
+        format!(
+            "energy = {}, found in generation {}",
+            self.energy, self.igeneration
+        )
     }
 }
 // hall of fame:1 ends here
 
-// public
-
-// [[file:~/Workspace/Programming/structure-predication/kickstart/kickstart.note::*public][public:1]]
+// [[file:../kickstart.note::*pub][pub:1]]
 use indexmap::IndexMap;
 use spdkit::termination::Generation;
 
@@ -281,7 +275,10 @@ pub fn genetic_search() -> Result<()> {
     Ok(())
 }
 
-pub(crate) fn evolve_from_seeds(seeds: Vec<MolGenome>, control_flag: &JobFlag) -> Result<Vec<MolGenome>> {
+pub(crate) fn evolve_from_seeds(
+    seeds: Vec<MolGenome>,
+    control_flag: &JobFlag,
+) -> Result<Vec<MolGenome>> {
     let config = &crate::config::CONFIG;
     let mut hall_of_fame = IndexMap::new();
     let mut engine = prepare_engine();
@@ -293,7 +290,11 @@ pub(crate) fn evolve_from_seeds(seeds: Vec<MolGenome>, control_flag: &JobFlag) -
     while JobType::from(control_flag) == JobType::Run {
         let generation = iterator.next().unwrap()?;
         // update current_seeds
-        current_seeds = generation.population.members().map(|m| m.genome().to_owned()).collect();
+        current_seeds = generation
+            .population
+            .members()
+            .map(|m| m.genome().to_owned())
+            .collect();
         let current_energy = process_generation(generation, &mut hall_of_fame)?;
         if let Some(target_energy) = config.search.target_energy {
             if current_energy < target_energy {
@@ -346,7 +347,10 @@ fn post_processes(hall_of_fame: IndexMap<String, HallOfFame>) {
     );
 }
 
-fn process_generation(generation: Generation<MolGenome>, hall_of_fame: &mut IndexMap<String, HallOfFame>) -> Result<f64> {
+fn process_generation(
+    generation: Generation<MolGenome>,
+    hall_of_fame: &mut IndexMap<String, HallOfFame>,
+) -> Result<f64> {
     generation.summary();
 
     let best = generation.population.best_member().unwrap();
@@ -372,4 +376,4 @@ fn process_generation(generation: Generation<MolGenome>, hall_of_fame: &mut Inde
 
     Ok(energy)
 }
-// public:1 ends here
+// pub:1 ends here

@@ -84,11 +84,11 @@ fn kickstart(mut mols: &mut Vec<Molecule>, r: f64) -> Result<Vec<Molecule>> {
 }
 // new:1 ends here
 
-// [[file:../kickstart.note::*pub][pub:1]]
+// [[file:../kickstart.note::03afa91b][03afa91b]]
 // FIXME: read formula
 pub fn kick(mol: &Molecule) -> Result<Molecule> {
     let mut mols = mol.fragment();
-    trace!("kick {} fragments ...", mols.len());
+    debug!("kick {} fragments ...", mols.len());
     if mols.len() <= 1 {
         warn!("cannot break molecule into multiple parts!");
         return Ok(mol.to_owned());
@@ -119,11 +119,11 @@ pub fn kick(mol: &Molecule) -> Result<Molecule> {
 pub fn kick_bunch(parent_mol: &Molecule, nbunch: usize) -> Vec<Molecule> {
     info!("Creating {} molecules using kickstart.", nbunch);
     (0..nbunch)
-        .into_par_iter()
+        .into_iter()
         .map(|_| kick(&parent_mol).expect("kick parent_mol"))
         .collect()
 }
-// pub:1 ends here
+// 03afa91b ends here
 
 // [[file:../kickstart.note::*test][test:1]]
 #[test]
