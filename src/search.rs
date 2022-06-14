@@ -13,8 +13,11 @@ use spdkit::*;
 // imports:1 ends here
 
 // [[file:../kickstart.note::0d80ccbe][0d80ccbe]]
+use std::collections::HashMap;
+
 trait RemoveDuplicates {
     fn remove_duplicates_by_energy(&mut self, threshold: f64) -> usize;
+    fn remove_duplicates_by_connectivity(&mut self) -> usize;
 }
 
 // FIXME: adhoc hacking for removing duplicates, based on energy
@@ -31,11 +34,52 @@ impl RemoveDuplicates for Vec<Individual<MolGenome>> {
         let n_old = self.len();
         self.sort_by_key(|x| x.objective_value().as_ordered_float());
 
-        // FIXME: adhoc
         self.dedup_by(|a, b| (a.objective_value() - b.objective_value()).abs() < threshold);
         let n_removed = n_old - self.len();
-        info!("Removed {} duplicates", n_removed);
+        info!("Removed {n_removed} duplicates by energy level");
         n_removed
+    }
+
+    /// Remove duplicate individuals by checking molecular connectivity. The
+    /// individual with higher fitness value will be kept.
+    fn remove_duplicates_by_connectivity(&mut self) -> usize {
+        let n_old = self.len();
+
+        let values = self
+            .iter()
+            .map(|indv| (indv.genome().decode().fingerprint(), indv.objective_value()));
+        let retain_better = retain_low_energy_duplicates(values);
+
+        self.retain(|indv| *retain_better.iter().next().unwrap());
+
+        let n_removed = n_old - self.len();
+        println!("Removed {n_removed} duplicates by connectivity");
+        n_removed
+    }
+}
+
+fn retain_low_energy_duplicates(values: impl IntoIterator<Item = (String, f64)>) -> Vec<bool> {
+    let values = values.into_iter().collect_vec();
+
+    // record the lowest energy item with same fingerprint
+    let mut map = HashMap::new();
+    for (fp, energy) in values.iter() {
+        let entry = map.entry(fp).or_insert(*energy);
+        if energy < entry {
+            *entry = *energy;
+        }
+    }
+
+    values.iter().map(|(fp, energy)| *energy <= map[&fp]).collect_vec()
+}
+
+#[test]
+fn test_remove_high_energy_duplicates() {
+    let values = [("x1", 1.0), ("x2", 2.0), ("x1", 0.8), ("x3", -2.0), ("x2", -0.2)];
+    let retain = retain_low_energy_duplicates(values.into_iter().map(|(x, e)| (x.to_string(), e)));
+    let expected = [false, false, true, true, true];
+    for (a, b) in retain.into_iter().zip(expected) {
+        assert_eq!(a, b);
     }
 }
 // 0d80ccbe ends here
@@ -191,22 +235,11 @@ where
     let mut all_indvs = valuer.create_individuals(all_genomes);
 
     // remove similar individuals
-    all_indvs.remove_duplicates_by_energy(similarity_energy_threshold);
-
-    // // Add new random genomes only when it really needs. This will reduce
-    // // redudant calculations.
-    // if all_indvs.len() < m {
-    //     let n_add_random = m - all_indvs.len();
-    //     // add random genomes as candicates in a global way
-    //     println!("Add {} new indvs with random kick", n_add_random);
-    //     let new_genomes = crate::exploration::new_random_genomes(n_add_random);
-    //     let new_indvs = valuer.create_individuals(new_genomes);
-    //     all_indvs.extend_from_slice(&new_indvs);
-    // }
+    all_indvs.remove_duplicates_by_connectivity();
 
     let mut pop = valuer.build_population(all_indvs).with_size_limit(m);
     let n = pop.survive();
-    info!("Removed {} bad-quality individuals.", n);
+    info!("Removed {} bad quality individuals.", n);
     pop
 }
 
