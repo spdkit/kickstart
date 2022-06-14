@@ -81,7 +81,7 @@ impl KickGen {
 
 // [[file:../kickstart.note::ae9bb309][ae9bb309]]
 /// Chemical structure explorer
-#[derive(Debug, StructOpt)]
+#[derive(Debug, Parser)]
 #[clap(author, version, about)]
 struct Cli {
     #[structopt(flatten)]

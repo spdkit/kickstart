@@ -308,10 +308,7 @@ pub fn genetic_search() -> Result<()> {
     Ok(())
 }
 
-pub(crate) fn evolve_from_seeds(
-    seeds: Vec<MolGenome>,
-    control_flag: &JobFlag,
-) -> Result<Vec<MolGenome>> {
+pub(crate) fn evolve_from_seeds(seeds: Vec<MolGenome>, control_flag: &JobFlag) -> Result<Vec<MolGenome>> {
     let config = &crate::config::CONFIG;
     let mut hall_of_fame = IndexMap::new();
     let mut engine = prepare_engine();
@@ -323,11 +320,7 @@ pub(crate) fn evolve_from_seeds(
     while JobType::from(control_flag) == JobType::Run {
         let generation = iterator.next().unwrap()?;
         // update current_seeds
-        current_seeds = generation
-            .population
-            .members()
-            .map(|m| m.genome().to_owned())
-            .collect();
+        current_seeds = generation.population.members().map(|m| m.genome().to_owned()).collect();
         let current_energy = process_generation(generation, &mut hall_of_fame)?;
         if let Some(target_energy) = config.search.target_energy {
             if current_energy < target_energy {
@@ -380,10 +373,7 @@ fn post_processes(hall_of_fame: IndexMap<String, HallOfFame>) {
     );
 }
 
-fn process_generation(
-    generation: Generation<MolGenome>,
-    hall_of_fame: &mut IndexMap<String, HallOfFame>,
-) -> Result<f64> {
+fn process_generation(generation: Generation<MolGenome>, hall_of_fame: &mut IndexMap<String, HallOfFame>) -> Result<f64> {
     generation.summary();
 
     let best = generation.population.best_member().unwrap();
@@ -401,7 +391,12 @@ fn process_generation(
         .population
         .individuals()
         .iter()
-        .map(|indv| indv.genome().decode())
+        .map(|indv| {
+            let mut mol = indv.genome().decode();
+            let title = format!("{} energy = {}", mol.title(), indv.objective_value());
+            mol.set_title(title);
+            mol
+        })
         .collect();
 
     let ofile = format!("./g{:03}.xyz", generation.index);
