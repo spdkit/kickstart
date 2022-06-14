@@ -1,20 +1,23 @@
-// [[file:../kickstart.note::*imports][imports:1]]
+// [[file:../kickstart.note::5712699d][5712699d]]
 use crate::common::*;
 use gosh::gchemol;
 
 use gchemol::compat::*;
 use gchemol::{Atom, Molecule};
 use spdkit::prelude::*;
-// imports:1 ends here
+// 5712699d ends here
 
 // [[file:../kickstart.note::62013f9d][62013f9d]]
-/// The Genotype for molecule
-// bare data for evolution
-#[derive(Clone, Debug, Serialize, Deserialize)]
+use vecfx::*;
+
+type OF64 = vecfx::OrderedFloat<f64>;
+
+/// The Genotype for molecule. Core data structure for evolution.
+#[derive(Clone, Debug, Serialize, Deserialize, Eq, Hash, PartialEq)]
 pub struct MolGenome {
     name: String,
     age: usize,
-    data: Vec<(usize, [f64; 3])>,
+    data: Vec<(usize, [OF64; 3])>,
 }
 
 impl std::fmt::Display for MolGenome {
@@ -25,9 +28,9 @@ impl std::fmt::Display for MolGenome {
 }
 
 impl spdkit::individual::Genome for MolGenome {}
-
 const BETA_FACTOR: f64 = 0.1;
 impl MolGenome {
+    /// Uniq genome ID
     pub fn uid(&self) -> &str {
         &self.name
     }
@@ -42,6 +45,21 @@ impl MolGenome {
         let mut new = self.clone();
         new.age += 1;
         new
+    }
+
+    fn encode_molecule(mol: &Molecule) -> Self {
+        let mut g = vec![];
+        for (_, a) in mol.sorted().atoms() {
+            let n = a.number();
+            let p = a.position().map(|x| x.as_ordered_float());
+            g.push((n, p));
+        }
+
+        Self {
+            name: random_name(GENOME_NAME_LENGTH),
+            age: 0,
+            data: g,
+        }
     }
 }
 // 62013f9d ends here
@@ -142,7 +160,7 @@ impl MolGenome {
     pub fn decode(&self) -> Molecule {
         use educate::prelude::*;
 
-        let mut mol = Molecule::from_atoms(self.data.clone());
+        let mut mol = Molecule::from_atoms(self.data.iter().map(|&(sym, coords)| (sym, coords.map(|x| x.into()))));
         mol.set_title(&self.name);
 
         // recreate connectivity from current positions
@@ -154,23 +172,9 @@ impl MolGenome {
 /// Create a random string of length `n` for naming a genome
 fn random_name(n: usize) -> String {
     use rand::distributions::Alphanumeric;
+
     let mut rng = thread_rng();
-    rng.sample_iter(&Alphanumeric).take(n).collect()
-}
-
-fn encode_molecule(mol: &Molecule) -> MolGenome {
-    let mut g = vec![];
-    for (_, a) in mol.sorted().atoms() {
-        let n = a.number();
-        let p = a.position();
-        g.push((n, p));
-    }
-
-    MolGenome {
-        name: random_name(GENOME_NAME_LENGTH),
-        age: 0,
-        data: g,
-    }
+    rng.sample_iter(&Alphanumeric).take(n).map(char::from).collect()
 }
 // e4f2cc3b ends here
 
@@ -246,7 +250,7 @@ impl ToGenome for ModelProperties {
         let energy = self.get_energy().expect("no energy");
         let mol = self.get_molecule().as_ref().expect("no molecule").clone();
         let evaluated = EvaluatedGenome {
-            genome: encode_molecule(mol),
+            genome: MolGenome::encode_molecule(mol),
             energy,
         };
         let key = evaluated.uid();

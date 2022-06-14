@@ -12,7 +12,7 @@ use spdkit::prelude::*;
 use spdkit::*;
 // imports:1 ends here
 
-// [[file:../kickstart.note::*duplicates][duplicates:1]]
+// [[file:../kickstart.note::0d80ccbe][0d80ccbe]]
 trait RemoveDuplicates {
     fn remove_duplicates_by_energy(&mut self, threshold: f64) -> usize;
 }
@@ -26,10 +26,10 @@ impl RemoveDuplicates for Vec<Individual<MolGenome>> {
     /// # Returns
     /// * return the number of removed indvs
     fn remove_duplicates_by_energy(&mut self, threshold: f64) -> usize {
-        use spdkit::common::float_ordering_minimize;
+        use vecfx::*;
 
         let n_old = self.len();
-        self.sort_by(|a, b| float_ordering_minimize(&a.objective_value(), &b.objective_value()));
+        self.sort_by_key(|x| x.objective_value().as_ordered_float());
 
         // FIXME: adhoc
         self.dedup_by(|a, b| (a.objective_value() - b.objective_value()).abs() < threshold);
@@ -38,7 +38,7 @@ impl RemoveDuplicates for Vec<Individual<MolGenome>> {
         n_removed
     }
 }
-// duplicates:1 ends here
+// 0d80ccbe ends here
 
 // [[file:../kickstart.note::*fitness][fitness:1]]
 #[derive(Clone)]
@@ -248,7 +248,7 @@ impl HallOfFame {
 }
 // hall of fame:1 ends here
 
-// [[file:../kickstart.note::*pub][pub:1]]
+// [[file:../kickstart.note::0f2bbc8d][0f2bbc8d]]
 use indexmap::IndexMap;
 use spdkit::termination::Generation;
 
@@ -376,4 +376,4 @@ fn process_generation(
 
     Ok(energy)
 }
-// pub:1 ends here
+// 0f2bbc8d ends here

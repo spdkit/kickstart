@@ -10,7 +10,7 @@ serde = {version="1.0", features = ["derive"]}
 serde_json = "1.0"
 indexmap = "1"
 lazy_static = "1.3"
-rand = "0.7"
+rand = "0.8.5"
 pager = "0.16"
 linefeed = "0.6"
 clap = {version="3", features = ["derive"]}
@@ -19,11 +19,12 @@ signal-hook = "0.1"
 crossbeam-channel = "0.3"
 #ctrlc = "3"
 #-------------------------------------------------
-gut = { version="0.2", package="gchemol-gut" }
+gut = { version="0.3", package="gchemol-gut" }
 gosh = { version=">=0.0.29", features=["adhoc"] }
-spdkit = { version="0.0.18" }
+spdkit = { version="0.0.20" }
 educate = { version = "0.1", path = "../structure-education", features=["adhoc"] }
 surface = { version = "0.0.30", path = "../surface-explorer", features=["adhoc"] }
+vecfx = {version="0.1", features=["nalgebra"]}
 
 [dev-dependencies]
 
