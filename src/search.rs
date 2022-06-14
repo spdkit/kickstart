@@ -49,8 +49,8 @@ impl RemoveDuplicates for Vec<Individual<MolGenome>> {
             .iter()
             .map(|indv| (indv.genome().decode().fingerprint(), indv.objective_value()));
         let retain_better = retain_low_energy_duplicates(values);
-
-        self.retain(|indv| *retain_better.iter().next().unwrap());
+        let mut keep = retain_better.iter();
+        self.retain(|indv| *keep.next().unwrap());
 
         let n_removed = n_old - self.len();
         println!("Removed {n_removed} duplicates by connectivity");
