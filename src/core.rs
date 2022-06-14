@@ -161,10 +161,10 @@ impl MolGenome {
         use educate::prelude::*;
 
         let mut mol = Molecule::from_atoms(self.data.iter().map(|&(sym, coords)| (sym, coords.map(|x| x.into()))));
-        mol.set_title(&self.name);
 
         // recreate connectivity from current positions
         mol.educated_rebond().unwrap();
+        mol.set_title(&self.name);
         mol
     }
 }
