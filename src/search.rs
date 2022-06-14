@@ -53,7 +53,7 @@ impl RemoveDuplicates for Vec<Individual<MolGenome>> {
         self.retain(|indv| *keep.next().unwrap());
 
         let n_removed = n_old - self.len();
-        println!("Removed {n_removed} duplicates by connectivity");
+        info!("Removed {n_removed} duplicates by connectivity.");
         n_removed
     }
 }

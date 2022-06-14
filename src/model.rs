@@ -182,14 +182,19 @@ pub fn compute(mols: Vec<Molecule>) -> Result<Vec<ModelProperties>> {
     // FIXME: adhoc hacking
     mols.into_iter()
         .map(|mut mol| {
+            // use builtin optimizer
+            // let steps = gosh::optim::optimize_geometry_iter(&mut mol, &mut bbm);
+            // for progress in steps.take(100) {
+            //     if progress.fmax < 0.1 {
+            //         break;
+            //     }
+            // }
             bbm.compute(&mut mol).map(|mut mp| {
                 mp.set_molecule(mol);
                 mp
             })
         })
         .collect()
-    // let mut runner = Runner::new(n, &config.bbm_dir, enable_bunch_mode);
-    // runner.compute(mols)
 }
 // 35efc986 ends here
 
