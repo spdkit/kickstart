@@ -20,6 +20,11 @@ trait RemoveDuplicates {
     fn remove_duplicates_by_connectivity(&mut self) -> usize;
 }
 
+fn comput_fingerprint(mut mol: Molecule) -> String {
+    mol.rebond();
+    mol.fingerprint()
+}
+
 // FIXME: adhoc hacking for removing duplicates, based on energy
 // criterion only
 impl RemoveDuplicates for Vec<Individual<MolGenome>> {
@@ -47,7 +52,7 @@ impl RemoveDuplicates for Vec<Individual<MolGenome>> {
 
         let values = self
             .iter()
-            .map(|indv| (indv.genome().decode().fingerprint(), indv.objective_value()));
+            .map(|indv| (comput_fingerprint(indv.genome().decode()), indv.objective_value()));
         let retain_better = retain_low_energy_duplicates(values);
         let mut keep = retain_better.iter();
         self.retain(|indv| *keep.next().unwrap());
