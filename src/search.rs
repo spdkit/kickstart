@@ -13,7 +13,8 @@ use spdkit::*;
 // imports:1 ends here
 
 // [[file:../kickstart.note::0d80ccbe][0d80ccbe]]
-use std::collections::HashMap;
+use std::collections::HashSet;
+use vecfx::*;
 
 trait RemoveDuplicates {
     fn remove_duplicates_by_energy(&mut self, threshold: f64) -> usize;
@@ -34,8 +35,6 @@ impl RemoveDuplicates for Vec<Individual<MolGenome>> {
     /// # Returns
     /// * return the number of removed indvs
     fn remove_duplicates_by_energy(&mut self, threshold: f64) -> usize {
-        use vecfx::*;
-
         let n_old = self.len();
         self.sort_by_key(|x| x.objective_value().as_ordered_float());
 
@@ -48,14 +47,18 @@ impl RemoveDuplicates for Vec<Individual<MolGenome>> {
     /// Remove duplicate individuals by checking molecular connectivity. The
     /// individual with higher fitness value will be kept.
     fn remove_duplicates_by_connectivity(&mut self) -> usize {
+        // record old number
         let n_old = self.len();
 
+        // take relevant values for reduplicating
         let values = self
             .iter()
-            .map(|indv| (comput_fingerprint(indv.genome().decode()), indv.objective_value()));
-        let retain_better = retain_low_energy_duplicates(values);
-        let mut keep = retain_better.iter();
-        self.retain(|indv| *keep.next().unwrap());
+            .map(|indv| (comput_fingerprint(indv.genome().decode()), indv.objective_value()))
+            .collect_vec();
+
+        let keep = retain_low_energy_duplicates(values);
+        let mut iter = keep.iter();
+        self.retain(|_| *iter.next().unwrap());
 
         let n_removed = n_old - self.len();
         info!("Removed {n_removed} duplicates by connectivity.");
@@ -64,27 +67,31 @@ impl RemoveDuplicates for Vec<Individual<MolGenome>> {
 }
 
 fn retain_low_energy_duplicates(values: impl IntoIterator<Item = (String, f64)>) -> Vec<bool> {
-    let values = values.into_iter().collect_vec();
+    // take relevant values for reduplicating
+    let mut values = values
+        .into_iter()
+        .zip(0..)
+        .map(|((fp, energy), i)| (fp, energy.as_ordered_float(), i))
+        .collect_vec();
+    let n = values.len();
 
-    // record the lowest energy item with same fingerprint
-    let mut map = HashMap::new();
-    for (fp, energy) in values.iter() {
-        let entry = map.entry(fp).or_insert(*energy);
-        if energy < entry {
-            *entry = *energy;
-        }
-    }
+    // sort by fingerprint and energy (lower value first)
+    values.sort();
 
-    values.iter().map(|(fp, energy)| *energy <= map[&fp]).collect_vec()
+    // for items with same fingerprint, keep only the lowest one
+    values.dedup_by_key(|(fp, _energy, _index)| fp.to_string());
+
+    let retained: HashSet<_> = values.into_iter().map(|(_, _, index)| index).collect();
+    (0..n).map(|i| retained.contains(&i)).collect_vec()
 }
 
 #[test]
 fn test_remove_high_energy_duplicates() {
-    let values = [("x1", 1.0), ("x2", 2.0), ("x1", 0.8), ("x3", -2.0), ("x2", -0.2)];
+    let values = [("1", 1.0), ("2", 2.0), ("1", 0.8), ("3", -2.0), ("2", -0.2), ("2", -0.2)];
     let retain = retain_low_energy_duplicates(values.into_iter().map(|(x, e)| (x.to_string(), e)));
-    let expected = [false, false, true, true, true];
-    for (a, b) in retain.into_iter().zip(expected) {
-        assert_eq!(a, b);
+    let expected = [false, false, true, true, true, false];
+    for (i, (a, b)) in retain.into_iter().zip(expected).enumerate() {
+        assert_eq!(a, b, "{i}");
     }
 }
 // 0d80ccbe ends here
