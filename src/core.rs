@@ -13,7 +13,7 @@ use vecfx::*;
 type OF64 = vecfx::OrderedFloat<f64>;
 
 /// The Genotype for molecule. Core data structure for evolution.
-#[derive(Clone, Debug, Serialize, Deserialize, Eq, Hash, PartialEq)]
+#[derive(Clone, Debug, Serialize, Deserialize, Eq, PartialEq)]
 pub struct MolGenome {
     name: String,
     age: usize,
@@ -63,6 +63,25 @@ impl MolGenome {
     }
 }
 // 62013f9d ends here
+
+// [[file:../kickstart.note::807e3191][807e3191]]
+use std::hash::{Hash, Hasher};
+
+impl Hash for MolGenome {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        // self.name.hash(state);
+        self.data.hash(state);
+    }
+}
+
+// impl PartialEq for MolGenome {
+//     fn eq(&self, other: &Self) -> bool {
+//         self.uid() == other.uid()
+//     }
+// }
+
+// impl Eq for MolGenome {}
+// 807e3191 ends here
 
 // [[file:../kickstart.note::47e1ae28][47e1ae28]]
 /// The evaluated energy with molecule structure.
