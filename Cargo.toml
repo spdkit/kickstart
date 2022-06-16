@@ -19,7 +19,7 @@ signal-hook = "0.1"
 crossbeam-channel = "0.3"
 #ctrlc = "3"
 #-------------------------------------------------
-gut = { version="0.3", package="gchemol-gut" }
+gut = { version="0.3.1", package="gchemol-gut" }
 gosh = { version=">=0.0.29", features=["adhoc"] }
 spdkit = { version="0.0.20" }
 educate = { version = "0.1", path = "../structure-education", features=["adhoc"] }

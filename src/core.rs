@@ -15,7 +15,6 @@ type OF64 = vecfx::OrderedFloat<f64>;
 /// The Genotype for molecule. Core data structure for evolution.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct MolGenome {
-    name: String,
     age: usize,
     data: Vec<(usize, [OF64; 3])>,
 }
@@ -23,18 +22,13 @@ pub struct MolGenome {
 impl std::fmt::Display for MolGenome {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::result::Result<(), std::fmt::Error> {
         // output name and current healthy point
-        write!(f, "{:} (hp = {:.2})", self.name, self.hp())
+        write!(f, "{:} (hp = {:.2})", self.uid(), self.hp())
     }
 }
 
 impl spdkit::individual::Genome for MolGenome {}
 const BETA_FACTOR: f64 = 0.1;
 impl MolGenome {
-    /// Uniq genome ID
-    pub fn uid(&self) -> &str {
-        &self.name
-    }
-
     /// Healthy point.
     pub fn hp(&self) -> f64 {
         (-BETA_FACTOR * self.age as f64).exp()
@@ -54,7 +48,6 @@ use std::hash::{Hash, Hasher};
 
 impl Hash for MolGenome {
     fn hash<H: Hasher>(&self, state: &mut H) {
-        // self.name.hash(state);
         self.data.hash(state);
     }
 }
@@ -66,9 +59,28 @@ impl PartialEq for MolGenome {
 }
 
 impl Eq for MolGenome {}
+
+impl MolGenome {
+    /// Uniq genome ID
+    pub fn uid(&self) -> String {
+        gut::utils::hash_code(&self.data)
+        // todo!();
+    }
+
+    pub fn encode_molecule(mol: &Molecule) -> Self {
+        let mut g = vec![];
+        for (_, a) in mol.sorted().atoms() {
+            let n = a.number();
+            let p = a.position().map(|x| x.as_ordered_float());
+            g.push((n, p));
+        }
+
+        Self { age: 0, data: g }
+    }
+}
 // 807e3191 ends here
 
-// [[file:../kickstart.note::47e1ae28][47e1ae28]]
+// [[file:../kickstart.note::376404cc][376404cc]]
 /// The evaluated energy with molecule structure.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EvaluatedGenome {
@@ -78,13 +90,11 @@ pub struct EvaluatedGenome {
 
 impl EvaluatedGenome {
     /// unique ID for saving into and retrieving from database.
-    fn uid(&self) -> &str {
+    fn uid(&self) -> String {
         self.genome.uid()
     }
 }
-// 47e1ae28 ends here
 
-// [[file:../kickstart.note::376404cc][376404cc]]
 use self::db::KICKSTART_DB_CONNECTION as Db;
 use gosh::db::prelude::*;
 
@@ -121,7 +131,7 @@ impl MolGenome {
     /// Retrieve energy from db
     pub fn energy(&self) -> f64 {
         let key = self.uid();
-        let evaluated = EvaluatedGenome::get_from_collection(&Db, key).expect("db: read energy failure");
+        let evaluated = EvaluatedGenome::get_from_collection(&Db, &key).expect("db: read energy failure");
         evaluated.energy
     }
 }
@@ -148,8 +158,6 @@ mod db {
 // 376404cc ends here
 
 // [[file:../kickstart.note::e4f2cc3b][e4f2cc3b]]
-const GENOME_NAME_LENGTH: usize = 8;
-
 pub trait ToGenome {
     fn encode(&self) -> MolGenome;
 
@@ -168,7 +176,7 @@ impl MolGenome {
 
         // recreate connectivity from current positions
         mol.educated_rebond().unwrap();
-        mol.set_title(&self.name);
+        mol.set_title(self.uid());
         mol
     }
 }
@@ -184,24 +192,6 @@ mod hash {
 
         let mut rng = thread_rng();
         rng.sample_iter(&Alphanumeric).take(n).map(char::from).collect()
-    }
-
-    impl MolGenome {
-        pub fn encode_molecule(mol: &Molecule) -> Self {
-            let mut g = vec![];
-            for (_, a) in mol.sorted().atoms() {
-                let n = a.number();
-                let p = a.position().map(|x| x.as_ordered_float());
-                g.push((n, p));
-            }
-
-            // let mut mol = mol.clone();
-            // mol.rebond();
-            // let name = mol.fingerprint();
-            let name = random_name(8);
-
-            Self { name, age: 0, data: g }
-        }
     }
 }
 // 6c1c6f41 ends here
@@ -283,7 +273,7 @@ impl ToGenome for ModelProperties {
         };
         let key = evaluated.uid();
         trace!("saving result with key {}", key);
-        evaluated.put_into_collection(&Db, key).expect("db write failure");
+        evaluated.put_into_collection(&Db, &key).expect("db write failure");
 
         evaluated
     }
