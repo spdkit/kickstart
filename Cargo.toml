@@ -25,7 +25,6 @@ spdkit = { version="0.0.20" }
 educate = { version = "0.1", path = "../structure-education", features=["adhoc"] }
 surface = { version = "0.0.30", path = "../surface-explorer", features=["adhoc"] }
 vecfx = {version="0.1", features=["nalgebra"]}
-sha2 = "0.10.2"
 
 [dev-dependencies]
 

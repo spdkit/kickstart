@@ -176,21 +176,14 @@ impl MolGenome {
 
 // [[file:../kickstart.note::6c1c6f41][6c1c6f41]]
 /// Create a random string of length `n` for naming a genome
-fn random_name(n: usize) -> String {
-    use rand::distributions::Alphanumeric;
-
-    let mut rng = thread_rng();
-    rng.sample_iter(&Alphanumeric).take(n).map(char::from).collect()
-}
-
 mod hash {
     use super::*;
-    use sha2::{Digest, Sha256};
 
-    fn create_hash(msg: &str) -> String {
-        let mut hasher = Sha256::new();
-        hasher.update(msg);
-        format!("{:x}", hasher.finalize()).chars().take(8).collect()
+    fn random_name(n: usize) -> String {
+        use rand::distributions::Alphanumeric;
+
+        let mut rng = thread_rng();
+        rng.sample_iter(&Alphanumeric).take(n).map(char::from).collect()
     }
 
     impl MolGenome {
@@ -202,19 +195,13 @@ mod hash {
                 g.push((n, p));
             }
 
-            let mut mol = mol.clone();
-            mol.rebond();
-            let fp = mol.fingerprint();
-            let name = self::create_hash(&fp);
+            // let mut mol = mol.clone();
+            // mol.rebond();
+            // let name = mol.fingerprint();
+            let name = random_name(8);
 
             Self { name, age: 0, data: g }
         }
-    }
-
-    #[test]
-    #[ignore]
-    fn test_hash_code() {
-        dbg!(create_hash("xxit"));
     }
 }
 // 6c1c6f41 ends here
