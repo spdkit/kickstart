@@ -95,50 +95,15 @@ impl EvaluatedGenome {
     }
 }
 
-use self::db::KICKSTART_DB_CONNECTION as Db;
-use gosh::db::prelude::*;
-
-impl EvaluatedGenome {
-    /// Return total number of evaluations
-    pub fn number_of_evaluations() -> usize {
-        Self::collection_size(&Db).expect("db: list failure") as usize
-    }
-
-    /// List items found in checkpointing database
-    pub fn list_db() -> Result<()> {
-        let mut items = Self::list_collection(&Db)?;
-        if items.is_empty() {
-            error!("No items in db.");
-        } else {
-            println!("Found {} items.", items.len());
-            println!("{:^width$} => {:^12}", "key", "energy", width = items[0].uid().len());
-
-            items.sort_by(|a, b| a.energy.partial_cmp(&b.energy).unwrap_or(std::cmp::Ordering::Less));
-            for eg in items {
-                let key = eg.uid();
-                println!("{} => {:<-12.4}", key, eg.energy);
-            }
-        }
-        Ok(())
-    }
-}
-
+/// list calculated data in checkpoint database for cli uses
 pub fn list_db() -> Result<()> {
     EvaluatedGenome::list_db()
 }
 
-impl MolGenome {
-    /// Retrieve energy from db
-    pub fn energy(&self) -> f64 {
-        let key = self.uid();
-        let evaluated = EvaluatedGenome::get_from_collection(&Db, &key).expect("db: read energy failure");
-        evaluated.energy
-    }
-}
-
 // global database connection
 mod db {
-    use crate::common::*;
+    use super::*;
+    use self::KICKSTART_DB_CONNECTION as Db;
     use gosh::db::prelude::*;
     use gosh::db::DbConnection;
 
@@ -153,6 +118,47 @@ mod db {
             let db = DbConnection::establish().expect("gosh db");
             db
         };
+    }
+
+    impl EvaluatedGenome {
+        /// Return total number of evaluations
+        pub fn number_of_evaluations() -> usize {
+            Self::collection_size(&Db).expect("db: list failure") as usize
+        }
+
+        /// Put evaluated data into database
+        pub fn put_into_db(&self) -> Result<()> {
+            let key = self.uid();
+            trace!("saving result with key {}", key);
+            self.put_into_collection(&Db, &key).expect("db write failure");
+            Ok(())
+        }
+
+        /// List items found in checkpointing database
+        pub fn list_db() -> Result<()> {
+            let mut items = Self::list_collection(&Db)?;
+            if items.is_empty() {
+                error!("No items in db.");
+            } else {
+                println!("Found {} items.", items.len());
+                println!("{:^width$} => {:^12}", "key", "energy", width = items[0].uid().len());
+
+                items.sort_by(|a, b| a.energy.partial_cmp(&b.energy).unwrap_or(std::cmp::Ordering::Less));
+                for eg in items {
+                    let key = eg.uid();
+                    println!("{} => {:<-12.4}", key, eg.energy);
+                }
+            }
+            Ok(())
+        }
+    }
+    impl MolGenome {
+        /// Retrieve energy from db
+        pub fn energy(&self) -> f64 {
+            let key = self.uid();
+            let evaluated = EvaluatedGenome::get_from_collection(&Db, &key).expect("db: read energy failure");
+            evaluated.energy
+        }
     }
 }
 // 376404cc ends here
@@ -181,20 +187,6 @@ impl MolGenome {
     }
 }
 // e4f2cc3b ends here
-
-// [[file:../kickstart.note::6c1c6f41][6c1c6f41]]
-/// Create a random string of length `n` for naming a genome
-mod hash {
-    use super::*;
-
-    fn random_name(n: usize) -> String {
-        use rand::distributions::Alphanumeric;
-
-        let mut rng = thread_rng();
-        rng.sample_iter(&Alphanumeric).take(n).map(char::from).collect()
-    }
-}
-// 6c1c6f41 ends here
 
 // [[file:../kickstart.note::f51a8eee][f51a8eee]]
 use std::sync::atomic;
@@ -271,9 +263,7 @@ impl ToGenome for ModelProperties {
             genome: MolGenome::encode_molecule(mol),
             energy,
         };
-        let key = evaluated.uid();
-        trace!("saving result with key {}", key);
-        evaluated.put_into_collection(&Db, &key).expect("db write failure");
+        evaluated.put_into_db();
 
         evaluated
     }
