@@ -46,21 +46,6 @@ impl MolGenome {
         new.age += 1;
         new
     }
-
-    fn encode_molecule(mol: &Molecule) -> Self {
-        let mut g = vec![];
-        for (_, a) in mol.sorted().atoms() {
-            let n = a.number();
-            let p = a.position().map(|x| x.as_ordered_float());
-            g.push((n, p));
-        }
-
-        Self {
-            name: random_name(GENOME_NAME_LENGTH),
-            age: 0,
-            data: g,
-        }
-    }
 }
 // 62013f9d ends here
 
@@ -187,7 +172,9 @@ impl MolGenome {
         mol
     }
 }
+// e4f2cc3b ends here
 
+// [[file:../kickstart.note::6c1c6f41][6c1c6f41]]
 /// Create a random string of length `n` for naming a genome
 fn random_name(n: usize) -> String {
     use rand::distributions::Alphanumeric;
@@ -195,7 +182,42 @@ fn random_name(n: usize) -> String {
     let mut rng = thread_rng();
     rng.sample_iter(&Alphanumeric).take(n).map(char::from).collect()
 }
-// e4f2cc3b ends here
+
+mod hash {
+    use super::*;
+    use sha2::{Digest, Sha256};
+
+    fn create_hash(msg: &str) -> String {
+        let mut hasher = Sha256::new();
+        hasher.update(msg);
+        format!("{:x}", hasher.finalize()).chars().take(8).collect()
+    }
+
+    impl MolGenome {
+        pub fn encode_molecule(mol: &Molecule) -> Self {
+            let mut g = vec![];
+            for (_, a) in mol.sorted().atoms() {
+                let n = a.number();
+                let p = a.position().map(|x| x.as_ordered_float());
+                g.push((n, p));
+            }
+
+            let mut mol = mol.clone();
+            mol.rebond();
+            let fp = mol.fingerprint();
+            let name = self::create_hash(&fp);
+
+            Self { name, age: 0, data: g }
+        }
+    }
+
+    #[test]
+    #[ignore]
+    fn test_hash_code() {
+        dbg!(create_hash("xxit"));
+    }
+}
+// 6c1c6f41 ends here
 
 // [[file:../kickstart.note::f51a8eee][f51a8eee]]
 use std::sync::atomic;
