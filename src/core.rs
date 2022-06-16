@@ -64,12 +64,15 @@ impl MolGenome {
     /// Uniq genome ID
     pub fn uid(&self) -> String {
         gut::utils::hash_code(&self.data)
-        // todo!();
     }
 
+    /// Enode `Molecule` into core data structure for evolution
     pub fn encode_molecule(mol: &Molecule) -> Self {
         let mut g = vec![];
-        for (_, a) in mol.sorted().atoms() {
+        let mut mol = mol.clone();
+        mol.rebond();
+        mol.reorder_cannonically();
+        for (_, a) in mol.atoms() {
             let n = a.number();
             let p = a.position().map(|x| x.as_ordered_float());
             g.push((n, p));
@@ -153,6 +156,7 @@ mod db {
             Ok(())
         }
     }
+
     impl MolGenome {
         /// Retrieve energy from db
         pub fn energy(&self) -> f64 {
