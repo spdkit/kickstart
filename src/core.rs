@@ -13,7 +13,7 @@ use vecfx::*;
 type OF64 = vecfx::OrderedFloat<f64>;
 
 /// The Genotype for molecule. Core data structure for evolution.
-#[derive(Clone, Debug, Serialize, Deserialize, Eq, PartialEq)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct MolGenome {
     name: String,
     age: usize,
@@ -74,13 +74,13 @@ impl Hash for MolGenome {
     }
 }
 
-// impl PartialEq for MolGenome {
-//     fn eq(&self, other: &Self) -> bool {
-//         self.uid() == other.uid()
-//     }
-// }
+impl PartialEq for MolGenome {
+    fn eq(&self, other: &Self) -> bool {
+        self.data == other.data
+    }
+}
 
-// impl Eq for MolGenome {}
+impl Eq for MolGenome {}
 // 807e3191 ends here
 
 // [[file:../kickstart.note::47e1ae28][47e1ae28]]
