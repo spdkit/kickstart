@@ -102,8 +102,8 @@ pub fn list_db() -> Result<()> {
 
 // global database connection
 mod db {
-    use super::*;
     use self::KICKSTART_DB_CONNECTION as Db;
+    use super::*;
     use gosh::db::prelude::*;
     use gosh::db::DbConnection;
 
@@ -141,12 +141,13 @@ mod db {
                 error!("No items in db.");
             } else {
                 println!("Found {} items.", items.len());
-                println!("{:^width$} => {:^12}", "key", "energy", width = items[0].uid().len());
+                let width = items[0].uid().len();
+                println!("{:^width$} => {:^12}", "key", "energy");
 
                 items.sort_by(|a, b| a.energy.partial_cmp(&b.energy).unwrap_or(std::cmp::Ordering::Less));
                 for eg in items {
                     let key = eg.uid();
-                    println!("{} => {:<-12.4}", key, eg.energy);
+                    println!("{:^width$} => {:<-12.4}", key, eg.energy);
                 }
             }
             Ok(())
@@ -187,53 +188,6 @@ impl MolGenome {
     }
 }
 // e4f2cc3b ends here
-
-// [[file:../kickstart.note::f51a8eee][f51a8eee]]
-use std::sync::atomic;
-
-pub type JobFlag = atomic::AtomicUsize;
-
-#[derive(Eq, PartialEq, Debug)]
-pub enum JobType {
-    /// Run program
-    Run,
-    /// Stop program.
-    Stop,
-    /// Edit internal state.
-    Edit,
-}
-
-impl JobType {
-    pub fn from(flag: &JobFlag) -> Self {
-        match flag.load(atomic::Ordering::SeqCst) {
-            0 => Self::Run,
-            1 => Self::Stop,
-            2 => Self::Edit,
-            _ => unreachable!(),
-        }
-    }
-
-    pub fn flag(&self) -> usize {
-        match self {
-            Self::Run => 0,
-            Self::Stop => 1,
-            Self::Edit => 2,
-        }
-    }
-}
-
-#[cfg(test)]
-mod test {
-    use super::*;
-    use std::sync::atomic;
-
-    #[test]
-    fn test_job_flag() {
-        let flag = JobFlag::new(JobType::Run.flag());
-        dbg!(flag);
-    }
-}
-// f51a8eee ends here
 
 // [[file:../kickstart.note::44895e0d][44895e0d]]
 use gosh::model::*;

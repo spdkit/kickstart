@@ -320,35 +320,7 @@ pub fn genetic_search() -> Result<()> {
     Ok(())
 }
 
-pub(crate) fn evolve_from_seeds(seeds: Vec<MolGenome>, control_flag: &JobFlag) -> Result<Vec<MolGenome>> {
-    let config = &crate::config::CONFIG;
-    let mut hall_of_fame = IndexMap::new();
-    let mut engine = prepare_engine();
-
-    let mut iterator = engine.evolve(&seeds).take(config.search.max_generations);
-
-    // wait for user interruption signal
-    let mut current_seeds = seeds.clone();
-    while JobType::from(control_flag) == JobType::Run {
-        let generation = iterator.next().unwrap()?;
-        // update current_seeds
-        current_seeds = generation.population.members().map(|m| m.genome().to_owned()).collect();
-        let current_energy = process_generation(generation, &mut hall_of_fame)?;
-        if let Some(target_energy) = config.search.target_energy {
-            if current_energy < target_energy {
-                // signal done
-                current_seeds = vec![];
-                println!("target energy {} reached.", target_energy);
-                break;
-            }
-        }
-    }
-
-    post_processes(hall_of_fame);
-    Ok(current_seeds)
-}
-
-pub(crate) fn prepare_seeds() -> Vec<MolGenome> {
+fn prepare_seeds() -> Vec<MolGenome> {
     let nbunch = crate::config::CONFIG.search.population_size;
     crate::exploration::new_random_genomes(nbunch)
 }

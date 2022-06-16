@@ -172,7 +172,7 @@ use crate::core::*;
 
 /// setup a runner based on global config and compute a list of molecules.
 pub fn compute(mols: Vec<Molecule>) -> Result<Vec<ModelProperties>> {
-    debug!("Computing {} molecules ...", mols.len());
+    info!("Computing {} molecules ...", mols.len());
     let config = &crate::config::CONFIG;
 
     let n = config.number_of_calculators;

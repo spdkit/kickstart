@@ -16,7 +16,7 @@ pub fn new_random_genomes(n: usize) -> Vec<MolGenome> {
     info!("Created {} random molecules.", mols.len());
 
     // 1. optimize new molecule
-    // 2. convert into genome
+    // 2. convert it into genome
     crate::model::compute(mols)
         .expect("calc failure")
         .into_iter()
