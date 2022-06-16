@@ -225,9 +225,8 @@ where
     let n_local_search = n;
     info!("vds: select {} genomes for exploitation", n_local_search);
     let mut exploit = crate::exploitation::Exploitation::default();
-    if let Some(mhm_conf) = &config.mhm {
-        exploit.set_minima_hopping(mhm_conf);
-        exploit.set_bbm_dir(config.bbm_dir.as_ref());
+    if let Some(bbm_dir) = &config.mhm {
+        exploit.set_minima_hopping(bbm_dir);
     }
     let required_genomes: Vec<_> = (0..n_local_search)
         .into_par_iter()
