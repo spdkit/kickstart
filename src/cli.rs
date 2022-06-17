@@ -84,19 +84,23 @@ impl KickGen {
 #[derive(Debug, Parser)]
 #[clap(author, version, about)]
 struct Cli {
-    #[structopt(flatten)]
+    #[clap(flatten)]
     verbose: gut::cli::Verbosity,
 
     /// Prints default configuration.
-    #[structopt(long = "print", short = 'p')]
+    #[clap(long, short)]
     print: bool,
 
     /// List calculated items in database.
-    #[structopt(long = "list", short = 'l')]
+    #[clap(long, short)]
     list: bool,
 
+    /// Sort by energy when listing database.
+    #[clap(long)]
+    sort: bool,
+
     /// Run genetic search.
-    #[structopt(long = "run", short = 'r')]
+    #[clap(long, short)]
     run: bool,
 }
 
@@ -110,12 +114,12 @@ pub fn enter_main() -> Result<()> {
     } else if args.list {
         // setup a pager like `less` cmd
         pager::Pager::with_pager("less").setup();
-        crate::list_db()?;
+        crate::list_db(args.sort)?;
     } else if args.run {
         println!("kickstart {:#^80}", app_version());
         crate::genetic_search()?;
     } else {
-        Cli::clap().print_help()?;
+        Cli::into_app().print_help()?;
     }
 
     Ok(())

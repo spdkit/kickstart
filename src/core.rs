@@ -100,8 +100,8 @@ impl EvaluatedGenome {
 }
 
 /// list calculated data in checkpoint database for cli uses
-pub fn list_db() -> Result<()> {
-    EvaluatedGenome::list_db()
+pub fn list_db(sort: bool) -> Result<()> {
+    EvaluatedGenome::list_db(sort)
 }
 
 // global database connection
@@ -139,7 +139,11 @@ mod db {
         }
 
         /// List items found in checkpointing database
-        pub fn list_db() -> Result<()> {
+        ///
+        /// # Parameters
+        ///
+        /// * sort: sort items by energy
+        pub fn list_db(sort: bool) -> Result<()> {
             let mut items = Self::list_collection(&Db)?;
             if items.is_empty() {
                 error!("No items in db.");
@@ -148,7 +152,9 @@ mod db {
                 let width = items[0].uid().len();
                 println!("{:^width$} => {:^12}", "key", "energy");
 
-                items.sort_by(|a, b| a.energy.partial_cmp(&b.energy).unwrap_or(std::cmp::Ordering::Less));
+                if sort {
+                    items.sort_by_key(|a| a.energy.as_ordered_float());
+                }
                 for eg in items {
                     let key = eg.uid();
                     println!("{:^width$} => {:<-12.4}", key, eg.energy);

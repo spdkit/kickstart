@@ -269,7 +269,7 @@ where
 }
 // 3daf9993 ends here
 
-// [[file:../kickstart.note::*hall of fame][hall of fame:1]]
+// [[file:../kickstart.note::faf49ff2][faf49ff2]]
 struct HallOfFame {
     energy: f64,
     igeneration: usize,
@@ -277,20 +277,14 @@ struct HallOfFame {
 
 impl HallOfFame {
     fn new(energy: f64, igeneration: usize) -> Self {
-        Self {
-            energy,
-            igeneration,
-        }
+        Self { energy, igeneration }
     }
 
     fn summarize(&self) -> String {
-        format!(
-            "energy = {}, found in generation {}",
-            self.energy, self.igeneration
-        )
+        format!("energy = {:^-18.6}, found in generation {}", self.energy, self.igeneration)
     }
 }
-// hall of fame:1 ends here
+// faf49ff2 ends here
 
 // [[file:../kickstart.note::0f2bbc8d][0f2bbc8d]]
 use indexmap::IndexMap;

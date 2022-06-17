@@ -83,7 +83,7 @@ pub(crate) fn start_repl(control_flag: std::sync::Arc<JobFlag>) -> Result<bool> 
                 // show subcommands
                 Ok(Action::Help {}) => {
                     let mut app = Action::clap();
-                    app.print_help();
+                    app.print_help()?;
                     println!("");
                 }
 
