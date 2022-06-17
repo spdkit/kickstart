@@ -15,7 +15,9 @@ pub struct Command {
 
 impl Command {
     pub fn new() -> Self {
-        Self { ..Default::default() }
+        Self {
+            ..Default::default()
+        }
     }
 }
 
