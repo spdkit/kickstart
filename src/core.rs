@@ -11,6 +11,7 @@ use spdkit::prelude::*;
 use vecfx::*;
 
 type OF64 = vecfx::OrderedFloat<f64>;
+const BETA_FACTOR: f64 = 0.1;
 
 /// The Genotype for molecule. Core data structure for evolution.
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -27,7 +28,7 @@ impl std::fmt::Display for MolGenome {
 }
 
 impl spdkit::individual::Genome for MolGenome {}
-const BETA_FACTOR: f64 = 0.1;
+
 impl MolGenome {
     /// Healthy point.
     pub fn hp(&self) -> f64 {
