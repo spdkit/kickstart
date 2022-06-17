@@ -357,6 +357,8 @@ fn post_processes(hall_of_fame: IndexMap<String, HallOfFame>) {
 }
 
 fn process_generation(generation: Generation<MolGenome>, hall_of_fame: &mut IndexMap<String, HallOfFame>) -> Result<f64> {
+    use vecfx::*;
+
     generation.summary();
 
     let best = generation.population.best_member().unwrap();
@@ -370,10 +372,13 @@ fn process_generation(generation: Generation<MolGenome>, hall_of_fame: &mut Inde
     }
 
     // write generation results
-    let mols: Vec<_> = generation
-        .population
-        .individuals()
-        .iter()
+    // sort by energy
+    let mut indvs: Vec<_> = generation.population.individuals().iter().cloned().collect();
+    indvs.sort_by_key(|indv| indv.objective_value().as_ordered_float());
+
+    // write molecular title for more information including energy and fingerpring
+    let mols: Vec<_> = indvs
+        .into_iter()
         .map(|indv| {
             let mut mol = indv.genome().decode();
             let title = format!("{} energy = {}", mol.title(), indv.objective_value());

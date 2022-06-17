@@ -5,12 +5,12 @@ use std::collections::HashMap;
 use gchemol::compat::*;
 use gchemol::geom::random::{rand_points_within_sphere, rand_rotate};
 use gchemol::prelude::*;
-use gchemol::{io, Atom, Molecule};
+use gchemol::{Atom, Molecule};
 
 use crate::common::*;
 // 957b83c7 ends here
 
-// [[file:../kickstart.note::*new][new:1]]
+// [[file:../kickstart.note::6540c145][6540c145]]
 /// rotate the molecule in place
 fn rotate_molecule(mol: &mut Molecule) -> Result<()> {
     let positions = mol.positions_vec();
@@ -74,7 +74,7 @@ fn generate_rand_fragments(fragments: &mut Vec<Molecule>, r: f64) -> Result<()> 
     Ok(())
 }
 
-fn kickstart(mut mols: &mut Vec<Molecule>, r: f64) -> Result<Vec<Molecule>> {
+pub(self) fn kickstart(mut mols: &mut Vec<Molecule>, r: f64) -> Result<Vec<Molecule>> {
     generate_rand_fragments(&mut mols, r)?;
 
     let mol = combine_fragments_into_one(&mols);
@@ -82,13 +82,13 @@ fn kickstart(mut mols: &mut Vec<Molecule>, r: f64) -> Result<Vec<Molecule>> {
 
     Ok(mols)
 }
-// new:1 ends here
+// 6540c145 ends here
 
 // [[file:../kickstart.note::03afa91b][03afa91b]]
 // FIXME: read formula
 pub fn kick(mol: &Molecule) -> Result<Molecule> {
     let mut mols = mol.fragment();
-    debug!("kick {} fragments ...", mols.len());
+    trace!("kick {} fragments ...", mols.len());
     if mols.len() <= 1 {
         warn!("cannot break molecule into multiple parts!");
         return Ok(mol.to_owned());
@@ -117,7 +117,7 @@ pub fn kick(mol: &Molecule) -> Result<Molecule> {
 /// * nbunch: the number of configurations to be generated
 ///
 pub fn kick_bunch(parent_mol: &Molecule, nbunch: usize) -> Vec<Molecule> {
-    info!("Creating {} molecules using kickstart.", nbunch);
+    debug!("Creating {} molecules using kickstart.", nbunch);
     (0..nbunch)
         .into_iter()
         .map(|_| kick(&parent_mol).expect("kick parent_mol"))
@@ -125,7 +125,7 @@ pub fn kick_bunch(parent_mol: &Molecule, nbunch: usize) -> Vec<Molecule> {
 }
 // 03afa91b ends here
 
-// [[file:../kickstart.note::*test][test:1]]
+// [[file:../kickstart.note::b63a9460][b63a9460]]
 #[test]
 fn test_distribute() {
     use gosh::gchemol::prelude::*;
@@ -135,4 +135,4 @@ fn test_distribute() {
     let mol = kick(&mol).expect("kick new mol");
     assert_eq!(12, mol.natoms());
 }
-// test:1 ends here
+// b63a9460 ends here
