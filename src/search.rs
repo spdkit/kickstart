@@ -229,7 +229,8 @@ where
         exploit.set_minima_hopping(bbm_dir);
     }
     let required_genomes: Vec<_> = (0..n_local_search)
-        .into_par_iter()
+        // .into_par_iter()
+        .into_iter()
         .map(|_| {
             let parent = next_parent(cur_population);
             exploit.perform_local_search(&parent)

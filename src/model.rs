@@ -26,7 +26,7 @@ impl Calculator {
     /// Return the calculated results using BlackBox Model.
     fn calculate(&mut self, mols: &[Molecule]) -> Result<Vec<ModelProperties>> {
         let results: Vec<_> = if self.bunch_mode {
-            debug!("Calculate {} molecules in bunch mode.", mols.len());
+            // debug!("Calculate {} molecules in bunch mode.", mols.len());
             self.bbm.compute_bunch(mols).context("opt failed in bundle mode")?
         } else {
             // not possible to parallel
@@ -79,6 +79,7 @@ impl Runner {
         let bunches: Vec<_> = mols.chunks(nbunch).collect();
         let results: Vec<_> = bunches
             .into_par_iter()
+            // .into_iter()
             .map_with((sender, receiver), |(tx, rx), bunch| {
                 let mut calculator = rx.recv().unwrap();
                 let calculated = calculator.calculate(bunch).unwrap();
@@ -99,7 +100,7 @@ use crate::core::*;
 
 /// setup a runner based on global config and compute a list of molecules.
 pub fn compute(mols: Vec<Molecule>) -> Result<Vec<ModelProperties>> {
-    debug!("Computing {} molecules ...", mols.len());
+    // debug!("Computing {} molecules ...", mols.len());
     let config = &crate::config::CONFIG;
 
     let n = config.number_of_calculators;
