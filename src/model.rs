@@ -75,6 +75,7 @@ impl Runner {
         let receiver = self.runner_rx.take().unwrap();
 
         let nbunch = if self.bunch_mode { self.n_calculators } else { 1 };
+        info!("compute {n_mols} molecules with {nbunch} calculators");
         let bunches: Vec<_> = mols.chunks(nbunch).collect();
         let results: Vec<_> = bunches
             .into_par_iter()
@@ -98,29 +99,31 @@ use crate::core::*;
 
 /// setup a runner based on global config and compute a list of molecules.
 pub fn compute(mols: Vec<Molecule>) -> Result<Vec<ModelProperties>> {
-    info!("Computing {} molecules ...", mols.len());
+    debug!("Computing {} molecules ...", mols.len());
     let config = &crate::config::CONFIG;
 
     let n = config.number_of_calculators;
     let enable_bunch_mode = config.run_in_bunch_mode;
     let mut bbm = BlackBoxModel::from_dir(&config.bbm_dir)?;
+    let mut runner = Runner::new(n, &config.bbm_dir, enable_bunch_mode);
+    runner.compute(mols)
 
-    // FIXME: adhoc hacking
-    mols.into_iter()
-        .map(|mut mol| {
-            // use builtin optimizer
-            // let steps = gosh::optim::optimize_geometry_iter(&mut mol, &mut bbm);
-            // for progress in steps.take(100) {
-            //     if progress.fmax < 0.1 {
-            //         break;
-            //     }
-            // }
-            bbm.compute(&mut mol).map(|mut mp| {
-                mp.set_molecule(mol);
-                mp
-            })
-        })
-        .collect()
+    // // FIXME: adhoc hacking
+    // mols.into_iter()
+    //     .map(|mut mol| {
+    //         // use builtin optimizer
+    //         // let steps = gosh::optim::optimize_geometry_iter(&mut mol, &mut bbm);
+    //         // for progress in steps.take(100) {
+    //         //     if progress.fmax < 0.1 {
+    //         //         break;
+    //         //     }
+    //         // }
+    //         bbm.compute(&mut mol).map(|mut mp| {
+    //             mp.set_molecule(mol);
+    //             mp
+    //         })
+    //     })
+    //     .collect()
 }
 // 35efc986 ends here
 
