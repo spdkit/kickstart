@@ -134,7 +134,11 @@ mod db {
         pub fn put_into_db(&self) -> Result<()> {
             let key = self.uid();
             trace!("saving result with key {}", key);
-            self.put_into_collection(&Db, &key).expect("db write failure");
+            // it happens, especially when run in parallel
+            // it is safe to ignore
+            if let Err(err) = self.put_into_collection(&Db, &key) {
+                error!("write db failure: {err:?}");
+            }
             Ok(())
         }
 
