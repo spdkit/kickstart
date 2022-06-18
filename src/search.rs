@@ -160,7 +160,7 @@ impl VariationOperator<MolGenome> for CutAndSpliceCrossOver {
 }
 // crossover:1 ends here
 
-// [[file:../kickstart.note::*next parent][next parent:1]]
+// [[file:../kickstart.note::ddc3ce9b][ddc3ce9b]]
 fn next_parent(cur_population: &Population<MolGenome>) -> MolGenome {
     let p_add_global_kick = 0.2;
     let p_add_global_crossover = 0.3;
@@ -197,7 +197,7 @@ fn next_parent(cur_population: &Population<MolGenome>) -> MolGenome {
         new_genome
     }
 }
-// next parent:1 ends here
+// ddc3ce9b ends here
 
 // [[file:../kickstart.note::3daf9993][3daf9993]]
 struct MyAlgorithm {}
@@ -229,8 +229,8 @@ where
         exploit.set_minima_hopping(bbm_dir);
     }
     let required_genomes: Vec<_> = (0..n_local_search)
-        // .into_par_iter()
-        .into_iter()
+        .into_par_iter()
+        // .into_iter()
         .map(|_| {
             let parent = next_parent(cur_population);
             exploit.perform_local_search(&parent)

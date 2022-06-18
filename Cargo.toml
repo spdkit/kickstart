@@ -31,4 +31,8 @@ vecfx = {version="0.1", features=["nalgebra"]}
 [features]
 # for easy hacking
 adhoc = []
+
+# compile with debug symbols in release build
+[profile.release]
+debug = 2
 # 7f0782c0 ends here

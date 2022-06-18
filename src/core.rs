@@ -137,7 +137,7 @@ mod db {
             // it happens, especially when run in parallel
             // it is safe to ignore
             if let Err(err) = self.put_into_collection(&Db, &key) {
-                error!("write db failure: {err:?}");
+                warn!("write db failure: {err:?}");
             }
             Ok(())
         }
