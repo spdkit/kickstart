@@ -16,6 +16,7 @@ const BETA_FACTOR: f64 = 0.1;
 /// The Genotype for molecule. Core data structure for evolution.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct MolGenome {
+    fp: String,
     age: usize,
     data: Vec<(usize, [OF64; 3])>,
 }
@@ -63,8 +64,9 @@ impl Eq for MolGenome {}
 
 impl MolGenome {
     /// Uniq genome ID
-    pub fn uid(&self) -> String {
-        gut::utils::hash_code(&self.data)
+    pub fn uid(&self) -> &str {
+        // gut::utils::hash_code(&self.data)
+        &self.fp
     }
 
     /// Enode `Molecule` into core data structure for evolution
@@ -72,14 +74,15 @@ impl MolGenome {
         let mut g = vec![];
         let mut mol = mol.clone();
         mol.rebond();
-        mol.reorder_cannonically();
+        // mol.reorder_cannonically();
         for (_, a) in mol.atoms() {
             let n = a.number();
             let p = a.position().map(|x| x.as_ordered_float());
             g.push((n, p));
         }
+        let fp = mol.fingerprint();
 
-        Self { age: 0, data: g }
+        Self { age: 0, data: g, fp }
     }
 }
 // 807e3191 ends here
@@ -94,7 +97,7 @@ pub struct EvaluatedGenome {
 
 impl EvaluatedGenome {
     /// unique ID for saving into and retrieving from database.
-    fn uid(&self) -> String {
+    fn uid(&self) -> &str {
         self.genome.uid()
     }
 }
@@ -136,7 +139,7 @@ mod db {
             trace!("saving result with key {}", key);
             // it happens, especially when run in parallel
             // it is safe to ignore
-            if let Err(err) = self.put_into_collection(&Db, &key) {
+            if let Err(err) = self.put_into_collection(&Db, key) {
                 warn!("write db failure: {err:?}");
             }
             Ok(())
