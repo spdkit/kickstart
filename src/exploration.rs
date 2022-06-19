@@ -4,7 +4,7 @@ use crate::core::*;
 // imports:1 ends here
 
 // [[file:../kickstart.note::d22e2006][d22e2006]]
-pub fn new_random_genomes(n: usize) -> Vec<MolGenome> {
+pub fn new_random_genomes(n: usize) -> Vec<EvaluatedGenome> {
     info!("create {n} random genomes ...");
     use gchemol::prelude::*;
     use gchemol::Molecule;
@@ -18,7 +18,6 @@ pub fn new_random_genomes(n: usize) -> Vec<MolGenome> {
     crate::model::evaluate_molecules(mols)
         .expect("comput failure")
         .into_iter()
-        .map(|e| e.genome)
         .collect()
 }
 // d22e2006 ends here

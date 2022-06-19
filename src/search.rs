@@ -161,40 +161,38 @@ impl VariationOperator<MolGenome> for CutAndSpliceCrossOver {
 // f0f254ac ends here
 
 // [[file:../kickstart.note::ddc3ce9b][ddc3ce9b]]
-fn next_parent(cur_population: &Population<MolGenome>) -> MolGenome {
+fn next_parent(cur_population: &Population<MolGenome>) -> EvaluatedGenome {
     let p_add_global_kick = 0.2;
     let p_add_global_crossover = 0.3;
 
     let mut rng = rand::thread_rng();
     let selector = SusSelection::new(2);
 
-    // add new genome globally
+    // add new genome using random kick
     if rng.gen::<f64>() < p_add_global_kick {
-        let new_genome = crate::exploration::new_random_genomes(1).pop().unwrap();
-        info!("candidate genome {}: randomly generated", new_genome);
-        new_genome
+        let new_kicked = crate::exploration::new_random_genomes(1).pop().unwrap();
+        debug!("candidate genome {}: randomly generated", new_kicked.genome);
+        new_kicked
     }
     // add new genome globally based on crossover
     else {
         let members = selector.select_from(cur_population, &mut rng);
-        let new_genome =
-            // global add using cut-and-splice crossover
-            if rng.gen::<f64>() < p_add_global_crossover {
-                let new_genome = CutAndSpliceCrossOver
-                    .breed_from(&members, &mut rng)
-                    .pop()
-                    .unwrap();
-                info!("candidate genome {}: cut-and-splice crossover", new_genome);
-                new_genome
+        // global add using cut-and-splice crossover
+        if rng.gen::<f64>() < p_add_global_crossover {
+            let new_genome = CutAndSpliceCrossOver.breed_from(&members, &mut rng).pop().unwrap();
+            info!("candidate genome {}: cut-and-splice crossover", new_genome);
+            EvaluatedGenome {
+                energy: new_genome.get_energy().unwrap(),
+                genome: new_genome,
             }
-            // add new genome locally using random kick
-            else {
-                let new_genome = members[0].genome().to_owned();
-                info!("candidate genome {}: weighted selection", new_genome);
-                new_genome
-            };
-        info!("candidate genome {}: weighted selection", new_genome);
-        new_genome
+        } else {
+            let new_genome = members[0].genome().to_owned();
+            info!("candidate genome {}: weighted selection", new_genome);
+            EvaluatedGenome {
+                energy: new_genome.get_energy().unwrap(),
+                genome: new_genome,
+            }
+        }
     }
 }
 // ddc3ce9b ends here
@@ -234,7 +232,12 @@ where
         .filter_map(|_| {
             let parent = next_parent(cur_population);
             // ignore any failure
-            exploit.perform_local_search(&parent).ok()
+            exploit
+                .perform_local_search(&parent)
+                .map_err(|e| {
+                    error!("local search error:\n{e:?}");
+                })
+                .ok()
         })
         .collect();
 
@@ -317,7 +320,7 @@ pub fn genetic_search() -> Result<()> {
 
 fn prepare_seeds() -> Vec<MolGenome> {
     let nbunch = crate::config::CONFIG.search.population_size;
-    crate::exploration::new_random_genomes(nbunch)
+    crate::exploration::new_random_genomes(nbunch).into_iter().map(|e| e.genome).collect()
 }
 
 fn prepare_engine() -> MyEngine {

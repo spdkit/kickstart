@@ -170,13 +170,6 @@ mod db {
 
     impl MolGenome {
         /// Retrieve energy from db
-        pub fn energy(&self) -> f64 {
-            let key = self.uid();
-            let evaluated = EvaluatedGenome::get_from_collection(&Db, &key).expect("db: read energy failure");
-            evaluated.energy
-        }
-
-        /// Retrieve energy from db
         pub fn get_energy(&self) -> Option<f64> {
             let key = self.uid();
             EvaluatedGenome::get_from_collection(&Db, &key).ok().map(|item| item.energy)
@@ -220,7 +213,8 @@ pub struct MolIndividual;
 /// for Valuer: valuer.create_individuals
 impl EvaluateObjectiveValue<MolGenome> for MolIndividual {
     fn evaluate(&self, genome: &MolGenome) -> f64 {
-        genome.energy()
+        // FIXME: review required
+        genome.get_energy().unwrap()
     }
 }
 
