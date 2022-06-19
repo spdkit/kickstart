@@ -126,6 +126,28 @@ pub fn compute(mols: Vec<Molecule>) -> Result<Vec<ModelProperties>> {
     //     })
     //     .collect()
 }
+
+/// setup a runner based on global config and compute a list of molecules.
+pub fn evaluate_molecules(mols: impl IntoIterator<Item = Molecule>) -> Result<Vec<EvaluatedGenome>> {
+    let mut evaluated = vec![];
+    let mut new_mols = vec![];
+
+    for mol in mols.into_iter() {
+        let g = MolGenome::encode_from_molecule(&mol);
+        if let Some(energy) = g.get_energy() {
+            evaluated.push(EvaluatedGenome { energy, genome: g });
+        } else {
+            new_mols.push(mol);
+        }
+    }
+    info!("found {} mols that already evaluated.", evaluated.len());
+    info!("found {} mols to be evaluated.", new_mols.len());
+
+    let new_evaluated = self::compute(new_mols)?.into_iter().map(|mp| mp.encode_as_evaluated());
+    evaluated.extend(new_evaluated);
+
+    Ok(evaluated)
+}
 // 35efc986 ends here
 
 // [[file:../kickstart.note::*test][test:1]]

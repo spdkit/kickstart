@@ -231,9 +231,10 @@ where
     let required_genomes: Vec<_> = (0..n_local_search)
         .into_par_iter()
         // .into_iter()
-        .map(|_| {
+        .filter_map(|_| {
             let parent = next_parent(cur_population);
-            exploit.perform_local_search(&parent)
+            // ignore any failure
+            exploit.perform_local_search(&parent).ok()
         })
         .collect();
 

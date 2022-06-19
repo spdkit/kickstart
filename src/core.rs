@@ -68,7 +68,7 @@ impl MolGenome {
     }
 
     /// Enode `Molecule` into core data structure for evolution
-    pub fn encode_molecule(mol: &Molecule) -> Self {
+    pub fn encode_from_molecule(mol: &Molecule) -> Self {
         let mut g = vec![];
         let mut mol = mol.clone();
         mol.rebond();
@@ -106,13 +106,12 @@ pub fn list_db(sort: bool) -> Result<()> {
 
 // global database connection
 mod db {
-    use self::KICKSTART_DB_CONNECTION as Db;
     use super::*;
     use gosh::db::prelude::*;
     use gosh::db::DbConnection;
 
     lazy_static! {
-        pub(super) static ref KICKSTART_DB_CONNECTION: DbConnection = {
+        static ref KICKSTART_DB_CONNECTION: DbConnection = {
             let dbvar = "GOSH_DATABASE_URL";
             let default_db = format!("{}.db", env!("CARGO_PKG_NAME"));
             if std::env::var(dbvar).is_err() {
@@ -124,6 +123,7 @@ mod db {
         };
     }
 
+    use KICKSTART_DB_CONNECTION as Db;
     impl EvaluatedGenome {
         /// Return total number of evaluations
         pub fn number_of_evaluations() -> usize {
@@ -131,7 +131,7 @@ mod db {
         }
 
         /// Put evaluated data into database
-        pub fn put_into_db(&self) -> Result<()> {
+        pub(super) fn put_into_db(&self) -> Result<()> {
             let key = self.uid();
             trace!("saving result with key {}", key);
             // it happens, especially when run in parallel
@@ -174,6 +174,12 @@ mod db {
             let key = self.uid();
             let evaluated = EvaluatedGenome::get_from_collection(&Db, &key).expect("db: read energy failure");
             evaluated.energy
+        }
+
+        /// Retrieve energy from db
+        pub fn get_energy(&self) -> Option<f64> {
+            let key = self.uid();
+            EvaluatedGenome::get_from_collection(&Db, &key).ok().map(|item| item.energy)
         }
     }
 }
@@ -229,7 +235,7 @@ impl ToGenome for ModelProperties {
         let energy = self.get_energy().expect("no energy");
         let mol = self.get_molecule().as_ref().expect("no molecule").clone();
         let evaluated = EvaluatedGenome {
-            genome: MolGenome::encode_molecule(mol),
+            genome: MolGenome::encode_from_molecule(mol),
             energy,
         };
         evaluated.put_into_db();
