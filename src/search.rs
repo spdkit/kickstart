@@ -123,7 +123,7 @@ impl EvaluateFitness<MolGenome> for MinimizeEnergyWithAging {
 }
 // fitness:1 ends here
 
-// [[file:../kickstart.note::*crossover][crossover:1]]
+// [[file:../kickstart.note::f0f254ac][f0f254ac]]
 use spdkit::population::*;
 
 #[derive(Debug, Clone)]
@@ -147,10 +147,10 @@ impl VariationOperator<MolGenome> for CutAndSpliceCrossOver {
         // avoid bad geometry which will cause opt failure
         mol.educate().context("failed to educate").unwrap();
 
-        let genomes: Vec<_> = crate::model::compute(vec![mol])
+        let genomes: Vec<_> = crate::model::evaluate_molecules(vec![mol])
             .expect("calc failure")
             .into_iter()
-            .map(|mp| mp.encode())
+            .map(|e| e.genome)
             .collect();
 
         info!("bred {}, parents: {} + {}", &genomes[0], mol1.title(), mol2.title());
@@ -158,7 +158,7 @@ impl VariationOperator<MolGenome> for CutAndSpliceCrossOver {
         genomes
     }
 }
-// crossover:1 ends here
+// f0f254ac ends here
 
 // [[file:../kickstart.note::ddc3ce9b][ddc3ce9b]]
 fn next_parent(cur_population: &Population<MolGenome>) -> MolGenome {

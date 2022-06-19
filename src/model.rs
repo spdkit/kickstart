@@ -99,7 +99,7 @@ impl Runner {
 use crate::core::*;
 
 /// setup a runner based on global config and compute a list of molecules.
-pub fn compute(mols: Vec<Molecule>) -> Result<Vec<ModelProperties>> {
+fn compute(mols: Vec<Molecule>) -> Result<Vec<ModelProperties>> {
     // debug!("Computing {} molecules ...", mols.len());
     let config = &crate::config::CONFIG;
 
@@ -141,7 +141,7 @@ pub fn evaluate_molecules(mols: impl IntoIterator<Item = Molecule>) -> Result<Ve
         }
     }
     info!("found {} mols that already evaluated.", evaluated.len());
-    info!("found {} mols to be evaluated.", new_mols.len());
+    debug!("found {} mols to be evaluated.", new_mols.len());
 
     let new_evaluated = self::compute(new_mols)?.into_iter().map(|mp| mp.encode_as_evaluated());
     evaluated.extend(new_evaluated);

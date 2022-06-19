@@ -15,12 +15,10 @@ pub fn new_random_genomes(n: usize) -> Vec<MolGenome> {
     let mols = crate::kickstart::kick_bunch(&mol, n);
     info!("Created {} random molecules.", mols.len());
 
-    // 1. optimize new molecule
-    // 2. convert it into genome
-    crate::model::compute(mols)
-        .expect("calc failure")
+    crate::model::evaluate_molecules(mols)
+        .expect("comput failure")
         .into_iter()
-        .map(|mp| mp.encode())
+        .map(|e| e.genome)
         .collect()
 }
 // d22e2006 ends here
