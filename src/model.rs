@@ -133,9 +133,8 @@ pub fn evaluate_molecules(mols: impl IntoIterator<Item = Molecule>) -> Result<Ve
     let mut new_mols = vec![];
 
     for mol in mols.into_iter() {
-        let g = MolGenome::encode_from_molecule(&mol);
-        if let Some(energy) = g.get_energy() {
-            evaluated.push(EvaluatedGenome { energy, genome: g });
+        if let Ok(e) = MolGenome::get_evaluated_genome(&mol) {
+            evaluated.push(e);
         } else {
             new_mols.push(mol);
         }

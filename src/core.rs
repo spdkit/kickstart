@@ -70,7 +70,7 @@ impl MolGenome {
     }
 
     /// Enode `Molecule` into core data structure for evolution
-    pub fn encode_from_molecule(mol: &Molecule) -> Self {
+    pub(self) fn encode_from_molecule(mol: &Molecule) -> Self {
         let mut g = vec![];
         let mut mol = mol.clone();
         mol.rebond();
@@ -172,10 +172,15 @@ mod db {
     }
 
     impl MolGenome {
-        /// Retrieve energy from db
-        pub fn get_energy(&self) -> Option<f64> {
+        /// Get evaluated `MolGenome` from db.
+        pub fn get_evaluated_genome(mol: &Molecule) -> Result<EvaluatedGenome> {
+            Self::encode_from_molecule(mol).try_into_evaluated()
+        }
+
+        /// Convert into evaluated genome in db.
+        pub fn try_into_evaluated(&self) -> Result<EvaluatedGenome> {
             let key = self.uid();
-            EvaluatedGenome::get_from_collection(&Db, &key).ok().map(|item| item.energy)
+            EvaluatedGenome::get_from_collection(&Db, &key)
         }
     }
 }
@@ -217,7 +222,7 @@ pub struct MolIndividual;
 impl EvaluateObjectiveValue<MolGenome> for MolIndividual {
     fn evaluate(&self, genome: &MolGenome) -> f64 {
         // FIXME: review required
-        genome.get_energy().unwrap()
+        genome.try_into_evaluated().unwrap().energy
     }
 }
 

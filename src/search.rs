@@ -181,17 +181,11 @@ fn next_parent(cur_population: &Population<MolGenome>) -> EvaluatedGenome {
         if rng.gen::<f64>() < p_add_global_crossover {
             let new_genome = CutAndSpliceCrossOver.breed_from(&members, &mut rng).pop().unwrap();
             info!("candidate genome {}: cut-and-splice crossover", new_genome);
-            EvaluatedGenome {
-                energy: new_genome.get_energy().unwrap(),
-                genome: new_genome,
-            }
+            new_genome.try_into_evaluated().unwrap()
         } else {
             let new_genome = members[0].genome().to_owned();
             info!("candidate genome {}: weighted selection", new_genome);
-            EvaluatedGenome {
-                energy: new_genome.get_energy().unwrap(),
-                genome: new_genome,
-            }
+            new_genome.try_into_evaluated().unwrap()
         }
     }
 }
