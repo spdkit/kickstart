@@ -16,9 +16,9 @@ const BETA_FACTOR: f64 = 0.1;
 /// The Genotype for molecule. Core data structure for evolution.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct MolGenome {
+    data: Vec<(usize, [OF64; 3])>,
     fp: String,
     age: usize,
-    data: Vec<(usize, [OF64; 3])>,
 }
 
 impl std::fmt::Display for MolGenome {
@@ -136,7 +136,8 @@ mod db {
         /// Put evaluated data into database
         pub(super) fn put_into_db(&self) -> Result<()> {
             let key = self.uid();
-            trace!("saving result with key {}", key);
+            // FIXME: should be debug
+            info!("saving result {key}:{}", self.energy);
             // it happens, especially when run in parallel
             // it is safe to ignore
             if let Err(err) = self.put_into_collection(&Db, key) {
@@ -188,12 +189,7 @@ mod db {
 
 // [[file:../kickstart.note::e4f2cc3b][e4f2cc3b]]
 pub trait ToGenome {
-    fn encode(&self) -> MolGenome;
-
-    // FIXME: adhoc
-    fn encode_as_evaluated(&self) -> EvaluatedGenome {
-        unimplemented!()
-    }
+    fn encode_as_evaluated(&self) -> EvaluatedGenome;
 }
 
 impl MolGenome {
@@ -229,10 +225,6 @@ impl EvaluateObjectiveValue<MolGenome> for MolIndividual {
 /// Encode computed molecule as `MolGenome` for evolution. The computed
 /// results will be cached in database for spdkit later retrieving.
 impl ToGenome for ModelProperties {
-    fn encode(&self) -> MolGenome {
-        self.encode_as_evaluated().genome
-    }
-
     fn encode_as_evaluated(&self) -> EvaluatedGenome {
         let energy = self.get_energy().expect("no energy");
         let mol = self.get_molecule().as_ref().expect("no molecule").clone();
@@ -240,9 +232,17 @@ impl ToGenome for ModelProperties {
             genome: MolGenome::encode_from_molecule(mol),
             energy,
         };
-        evaluated.put_into_db();
-
-        evaluated
+        if let Ok(e) = MolGenome::get_evaluated_genome(&mol) {
+            if energy < e.energy {
+                evaluated.put_into_db();
+                evaluated
+            } else {
+                e
+            }
+        } else {
+            evaluated.put_into_db();
+            evaluated
+        }
     }
 }
 

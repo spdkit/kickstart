@@ -142,6 +142,7 @@ pub fn evaluate_molecules(mols: impl IntoIterator<Item = Molecule>) -> Result<Ve
     info!("found {} mols that already evaluated.", evaluated.len());
     debug!("found {} mols to be evaluated.", new_mols.len());
 
+    // 这里算出的结构仍有可能产生已计算完的结果
     let new_evaluated = self::compute(new_mols)?.into_iter().map(|mp| mp.encode_as_evaluated());
     evaluated.extend(new_evaluated);
 
