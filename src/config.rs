@@ -36,6 +36,8 @@ pub struct Config {
 
     /// If set, will enable minima hopping for local expolitation
     pub mhm: Option<PathBuf>,
+    /// md
+    pub md: Option<PathBuf>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Default)]
@@ -57,6 +59,7 @@ impl Default for Config {
             number_of_calculators: 1,
             run_in_bunch_mode: false,
             mhm: None,
+            md: None,
             search: Search {
                 population_size: 10,
                 max_generations: 10,

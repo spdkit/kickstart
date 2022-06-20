@@ -119,7 +119,7 @@ pub fn kick(mol: &Molecule) -> Result<Molecule> {
 pub fn kick_bunch(parent_mol: &Molecule, nbunch: usize) -> Vec<Molecule> {
     debug!("Creating {} molecules using kickstart.", nbunch);
     (0..nbunch)
-        .into_iter()
+        .into_par_iter()
         .map(|_| kick(&parent_mol).expect("kick parent_mol"))
         .collect()
 }
