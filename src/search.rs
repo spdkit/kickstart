@@ -297,6 +297,8 @@ pub fn genetic_search() -> Result<()> {
     let seeds = prepare_seeds();
     let mut hall_of_fame = IndexMap::new();
     let mut engine = prepare_engine();
+
+    let mut stop = gosh::runner::stop::StopFileHandler::new();
     for g in engine.evolve(&seeds).take(config.search.max_generations) {
         let generation = g?;
         let current_energy = process_generation(generation, &mut hall_of_fame)?;
@@ -306,6 +308,10 @@ pub fn genetic_search() -> Result<()> {
                 break;
             }
         }
+        if let Err(e) = stop.handle_user_interruption() {
+            println!("{e:?}");
+            break;
+        }
     }
     post_processes(hall_of_fame);
 
@@ -314,7 +320,10 @@ pub fn genetic_search() -> Result<()> {
 
 fn prepare_seeds() -> Vec<MolGenome> {
     let nbunch = crate::config::CONFIG.search.population_size;
-    crate::exploration::new_random_genomes(nbunch).into_iter().map(|e| e.genome).collect()
+    crate::exploration::new_random_genomes(nbunch)
+        .into_iter()
+        .map(|e| e.genome)
+        .collect()
 }
 
 fn prepare_engine() -> MyEngine {
