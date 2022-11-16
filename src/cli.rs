@@ -119,7 +119,7 @@ pub fn enter_main() -> Result<()> {
         println!("kickstart {:#^80}", app_version());
         crate::genetic_search()?;
     } else {
-        Cli::into_app().print_help()?;
+        Cli::command().print_help()?;
     }
 
     Ok(())
