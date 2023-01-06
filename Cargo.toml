@@ -20,8 +20,8 @@ crossbeam-channel = "0.3"
 #ctrlc = "3"
 #-------------------------------------------------
 gut = { version = "0.4", package = "gchemol-gut" }
-gosh = { version = ">=0.0.29", features = ["adhoc"] }
-spdkit = { version = "0.0.20" }
+gosh = { version = "0.1", features = ["adhoc"] }
+spdkit = { version = "0.1" }
 educate = { version = "0.1", path = "../structure-education", features = [
   "adhoc",
 ] }
@@ -29,6 +29,7 @@ surface = { version = ">0.0.30", path = "../surface-explorer", features = [
   "adhoc",
 ] }
 vecfx = { version = "0.1", features = ["nalgebra"] }
+minima-hopping = { version = "0.0.34", features = ["adhoc"] }
 
 [dev-dependencies]
 

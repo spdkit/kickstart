@@ -2,7 +2,6 @@
 use crate::common::*;
 use gosh::gchemol;
 
-use gchemol::compat::*;
 use gchemol::{Atom, Molecule};
 use spdkit::prelude::*;
 // 5712699d ends here

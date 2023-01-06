@@ -2,7 +2,6 @@
 use gosh::gchemol;
 use std::collections::HashMap;
 
-use gchemol::compat::*;
 use gchemol::geom::random::{rand_points_within_sphere, rand_rotate};
 use gchemol::prelude::*;
 use gchemol::{Atom, Molecule};
@@ -13,7 +12,7 @@ use crate::common::*;
 // [[file:../kickstart.note::6540c145][6540c145]]
 /// rotate the molecule in place
 fn rotate_molecule(mol: &mut Molecule) -> Result<()> {
-    let positions = mol.positions_vec();
+    let positions = mol.positions().collect_vec();
     let new = rand_rotate(&positions);
     mol.set_positions(new);
 
@@ -56,7 +55,7 @@ fn generate_rand_fragments(fragments: &mut Vec<Molecule>, r: f64) -> Result<()> 
     trace!("kick {:} fragments, radius = {:.2}", n, r);
     for i in 0..n {
         let mut mol = &mut fragments[i];
-        let positions = mol.positions_vec();
+        let positions = mol.positions().collect_vec();
         if positions[0][0].is_nan() {
             dbg!(i);
             dbg!(&positions);
@@ -78,7 +77,7 @@ pub(self) fn kickstart(mut mols: &mut Vec<Molecule>, r: f64) -> Result<Vec<Molec
     generate_rand_fragments(&mut mols, r)?;
 
     let mol = combine_fragments_into_one(&mols);
-    let mols = mol.fragment();
+    let mols = mol.fragmented().collect();
 
     Ok(mols)
 }
@@ -87,7 +86,7 @@ pub(self) fn kickstart(mut mols: &mut Vec<Molecule>, r: f64) -> Result<Vec<Molec
 // [[file:../kickstart.note::03afa91b][03afa91b]]
 // FIXME: read formula
 pub fn kick(mol: &Molecule) -> Result<Molecule> {
-    let mut mols = mol.fragment();
+    let mut mols = mol.fragmented().collect_vec();
     trace!("kick {} fragments ...", mols.len());
     if mols.len() <= 1 {
         warn!("cannot break molecule into multiple parts!");

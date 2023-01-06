@@ -4,7 +4,6 @@ use std::collections::HashSet;
 use gosh::gchemol;
 
 // FIXME: remove
-use gchemol::compat::*;
 use gchemol::geom::random::rand_rotate;
 use gchemol::prelude::*;
 use gchemol::Molecule;
@@ -12,7 +11,7 @@ use gchemol::Molecule;
 use crate::common::*;
 // 5e25faec ends here
 
-// [[file:../kickstart.note::*core][core:1]]
+// [[file:../kickstart.note::918d3100][918d3100]]
 // return indices of atoms lying above the cutting plane
 fn indices_above_plane(positions: &Vec<[f64; 3]>) -> HashSet<usize> {
     positions
@@ -30,7 +29,7 @@ fn cut_molecule_by_rand_plane(mol: &Molecule) -> (HashSet<usize>, HashSet<usize>
     let mut mol = mol.clone();
     mol.recenter();
 
-    let positions = mol.positions_vec();
+    let positions = mol.positions().collect_vec();
     let rotated = rand_rotate(&positions);
 
     let ind_all: HashSet<_> = (0..natoms).collect();
@@ -54,7 +53,7 @@ pub(crate) fn plane_cut_and_splice(mol1: &Molecule, mol2: &Molecule) -> Result<M
     }
 
     // record element symbols
-    let symbols = mol1.symbols_vec();
+    let symbols = mol1.symbols().collect_vec();
     let reduced_symbols = mol1.reduced_symbols();
     let maxloop = 50000;
     let mut iloop = 0;
@@ -103,7 +102,7 @@ pub(crate) fn plane_cut_and_splice(mol1: &Molecule, mol2: &Molecule) -> Result<M
 
     Ok(omol)
 }
-// core:1 ends here
+// 918d3100 ends here
 
 // [[file:../kickstart.note::*test][test:1]]
 #[test]
