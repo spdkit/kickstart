@@ -14,6 +14,8 @@ mod model;
 mod mutation;
 mod search;
 
+mod hardsphere;
+
 pub mod cli;
 // 5bd520e5 ends here
 
@@ -59,5 +61,6 @@ pub mod docs {
     export_doc!(core);
     export_doc!(exploitation);
     export_doc!(config);
+    export_doc!(hardsphere);
 }
 // 58ff7b77 ends here

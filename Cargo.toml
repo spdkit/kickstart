@@ -1,7 +1,7 @@
 # [[file:kickstart.note::7f0782c0][7f0782c0]]
 [package]
 name = "kickstart"
-version = "0.0.26"
+version = "0.0.27"
 edition = "2021"
 authors = ["Wenping Guo <ybyygu@gmail.com>"]
 
@@ -30,6 +30,10 @@ surface = { version = ">0.0.30", path = "../surface-explorer", features = [
 ] }
 vecfx = { version = "0.1", features = ["nalgebra"] }
 minima-hopping = { version = "0.0.34", features = ["adhoc"] }
+
+# for hard sphere
+ncollide3d = "0.33.0"
+nalgebra = "0.31.4"
 
 [dev-dependencies]
 
