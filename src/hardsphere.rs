@@ -1,13 +1,19 @@
 // [[file:../kickstart.note::058f52f2][058f52f2]]
 use super::*;
+
+use vecfx::*;
 // 058f52f2 ends here
 
 // [[file:../kickstart.note::758d935b][758d935b]]
+use ncollide3d::math::{Point, Vector};
+use ncollide3d::shape::Ball;
+
 pub struct Particle {
     ball: Ball<f64>,
     charge: f64,
     position: Point<f64>,
     velocity: Vector<f64>,
+    mass: f64,
 }
 
 impl Particle {
@@ -17,6 +23,7 @@ impl Particle {
             charge: 0.0,
             position: Point::new(0.0, 0.0, 0.0),
             velocity: Vector::new(0.0, 0.0, 0.0),
+            mass: 1.0,
         }
     }
 
@@ -28,15 +35,24 @@ impl Particle {
         self.position = coord.into();
     }
 
+    pub fn set_mass(&mut self, mass: f64) {
+        assert!(mass.is_sign_positive(), "invalid mass: {mass:?}");
+        self.mass = mass;
+    }
+
     pub fn set_velocity(&mut self, velocity: [f64; 3]) {
         self.velocity = velocity.into();
     }
+}
+// 758d935b ends here
 
-    /// 计算该点与其它点之间的静电相互作用力.
+// [[file:../kickstart.note::3fb2306d][3fb2306d]]
+impl Particle {
+    /// Compute particle's contribution to electrostatic energy and force
     ///
     /// # Parameters
     ///   * other: other Particle object
-    pub fn elastic_energy_and_force(&self, other: &Self) -> (f64, Vector<f64>) {
+    pub fn electrostatic_energy_and_force(&self, other: &Self) -> (f64, Vector<f64>) {
         let ke = 8.987551792314E-9;
         let ri = self.position - other.position;
         let q = self.charge;
@@ -48,11 +64,6 @@ impl Particle {
         (eij, fij)
     }
 }
-// 758d935b ends here
-
-// [[file:../kickstart.note::7fa10d91][7fa10d91]]
-use gosh::optim::Dynamics;
-use vecfx::*;
 
 fn evaluate_energy_and_force(particles: &[Particle]) -> (f64, Vec<f64>) {
     use vecfx::*;
@@ -65,7 +76,7 @@ fn evaluate_energy_and_force(particles: &[Particle]) -> (f64, Vec<f64>) {
         let mut fi = Vector::default();
         for j in 0..i {
             let pj = &particles[j];
-            let (eij, fij) = pi.elastic_energy_and_force(pj);
+            let (eij, fij) = pi.electrostatic_energy_and_force(pj);
             fi += fij;
             e += eij;
         }
@@ -76,80 +87,189 @@ fn evaluate_energy_and_force(particles: &[Particle]) -> (f64, Vec<f64>) {
     (e, forces)
 }
 
-fn simulate() -> Result<()> {
-    use gosh::optim::PotentialOutput;
-    let p1 = Particle::new(1.0);
-    let p2 = Particle::new(1.0);
-    let p3 = Particle::new(1.0);
-    let mut particles = vec![p1, p2, p3];
-    let xinit = particles.iter().flat_map(|p| p.position.iter().copied()).collect_vec();
-    let mut dynamics = Dynamics::new(xinit.as_slice(), |x: &[f64], f: &mut [f64]| {
-        for (i, &p) in x.as_3d().iter().enumerate() {
-            particles[i].set_position(p);
+/// Update velocity and positions in Velocity Verlet Algorithm
+fn velocity_verlet_update<'a, U>(velocity: &mut [f64], pot: &mut Dynamics<'a, U>, dt: f64, masses: &[f64]) -> Result<()> {
+    // constant
+    let m = masses.as_vector_slice();
+
+    // forces and velocities at time `t`
+    let f = pot.get_force()?.as_vector_slice();
+    let mut v = velocity.as_vector_slice_mut();
+
+    // Update velocities at t + ∆t/2
+    v += 0.5 * dt * f.component_div(&m);
+
+    // Update positions at t + ∆t with velocities
+    let dr = &v * dt;
+
+    // Update velocities at t + ∆t
+    pot.step_toward(dr.as_slice());
+    let f_new = pot.get_force()?.as_vector_slice();
+    // NOTE: v is a mutable reference to velocity
+    v += 0.5 * dt * f_new.component_div(&m);
+
+    Ok(())
+}
+// 3fb2306d ends here
+
+// [[file:../kickstart.note::19b64702][19b64702]]
+mod charged {
+    use super::*;
+
+    #[derive(Debug, Copy, Clone)]
+    struct Charged {
+        position: Vector<f64>,
+        charge: f64,
+    }
+
+    impl Charged {
+        /// Compute particle's contribution to electrostatic energy and force
+        ///
+        /// # Parameters
+        ///   * other: other Particle object
+        pub fn electrostatic_energy_and_force(&self, other: &Self) -> (f64, Vector<f64>) {
+            let ke = 8.987551792314E-9;
+            let ri = self.position - other.position;
+            let q = self.charge;
+            let qi = other.charge;
+            let ri_norm2 = ri.norm_squared();
+            let pre_factor = ke * q * qi;
+            let fij = pre_factor / ri_norm2 * ri.normalize();
+            let eij = pre_factor / ri_norm2.sqrt();
+            (eij, fij)
         }
-        let (energy, forces) = evaluate_energy_and_force(&particles);
-        f.clone_from_slice(&forces);
-        Ok(energy)
-    });
-    todo!()
+    }
+
+    fn evaluate_electrostatic_energy_and_force(particles: &[Charged]) -> (f64, Vec<f64>) {
+        let n = particles.len();
+        let mut e = 0.0;
+        let mut f = vec![];
+        for i in 0..n {
+            let pi = &particles[i];
+            let mut fi = Vector::default();
+            for j in 0..i {
+                let pj = &particles[j];
+                let (eij, fij) = pi.electrostatic_energy_and_force(pj);
+                fi += fij;
+                e += eij;
+            }
+            f.push([fi.x, fi.y, fi.z]);
+        }
+
+        let forces = f.as_flat().to_owned();
+        (e, forces)
+    }
+}
+// 19b64702 ends here
+
+// [[file:../kickstart.note::7fa10d91][7fa10d91]]
+use gosh::optim::Dynamics;
+use gosh::optim::PotentialOutput;
+
+pub struct System {
+    mass: Vec<f64>,
+    velocity: Vec<f64>,
+}
+
+impl System {
+    fn propagate<U>(&mut self, dynamics: &mut Dynamics<U>, dt: f64) -> Result<()> {
+        assert_eq!(self.mass.len(), dynamics.position().len());
+        velocity_verlet_update(&mut self.velocity, dynamics, dt, &self.mass)?;
+        Ok(())
+    }
+
+    /// Start MD simulation of particles using with time step `dt` and
+    /// max number of iterations `nmax
+    pub fn simulate(&mut self, particles: &mut [Particle], dt: f64, nmax: usize) -> Result<()> {
+        self.mass = particles.iter().map(|p| p.mass).collect();
+
+        let xinit = particles.iter().flat_map(|p| p.position.iter().copied()).collect_vec();
+        let mut dynamics = Dynamics::new(xinit.as_slice(), |x: &[f64], f: &mut [f64]| {
+            for (i, &p) in x.as_3d().iter().enumerate() {
+                particles[i].set_position(p);
+            }
+            let (energy, forces) = evaluate_energy_and_force(&particles);
+            f.clone_from_slice(&forces);
+            Ok(energy)
+        });
+
+        for i in 0..nmax {
+            self.propagate(&mut dynamics, dt)?;
+        }
+        // copy velocity back
+        drop(dynamics);
+        for (v, p) in self.velocity.as_3d().iter().zip(particles) {
+            p.set_velocity(*v);
+        }
+
+        Ok(())
+    }
 }
 // 7fa10d91 ends here
 
-// [[file:../kickstart.note::3fb2306d][3fb2306d]]
-use ncollide3d::math::{Isometry, Point, Vector};
-use ncollide3d::query;
-use ncollide3d::shape::{Ball, Compound, Cuboid, ShapeHandle};
+// [[file:../kickstart.note::e6da4ab2][e6da4ab2]]
+mod collision {
+    use super::*;
 
-#[test]
-fn test_nc() {
-    let ball1 = Ball::new(1.0);
-    let ball2 = Ball::new(1.0);
+    use ncollide3d::math::{Isometry, Point, Vector};
+    use ncollide3d::query;
+    use ncollide3d::shape::{Ball, Compound, Cuboid, ShapeHandle};
 
-    // 初始化位置
-    let ball_pos1 = Point::new(0.0, 0.0, 0.0);
-    let ball_pos2 = Point::new(3.0, 3.0, 3.0);
+    impl Particle {
+        /// Compute the time of impact for particle collision within max
+        /// allowd time `max_time`. Return None if no collision.
+        ///
+        /// # Parameters
+        ///   * particle: a `Particle` struct
+        ///   * max_time: the maximum allowed time of impact.
+        pub(super) fn predict_time_of_impact(&self, particle: &Particle, max_time: f64) -> Option<f64> {
+            let toi = query::time_of_impact_ball_ball(
+                &self.position,     // 初始位置
+                &self.velocity,     // 初始速度
+                &self.ball,         // 形状
+                &particle.position, //
+                &particle.velocity, //
+                &particle.ball,     //
+                max_time,           // the maximum allowed time of impact.
+                0.0,                // target distance between spheres
+            )?;
 
-    // 初始化速度
-    let ball_vel1 = Vector::new(2.0, 2.0, 2.0);
-    let ball_vel2 = Vector::new(-0.5, -0.5, -0.5);
-
-    if let Some(toi) = query::time_of_impact_ball_ball(
-        &ball_pos1, // 初始位置
-        &ball_vel1, // 初始速度
-        &ball1,     // 形状
-        &ball_pos2, //
-        &ball_vel2, //
-        &ball2,     //
-        3.0,        // the maximum allowed time of impact.
-        0.0,        // target distance between spheres
-    ) {
-        // 如果是Some(0.0), 表示已经接触
-        // 如果是None, 表示不会接触
-        // 如果是Some(2.0), 表示2.0单位的时间后会接触.
-        println!("{:?}", toi);
+            toi.toi.into()
+        }
     }
-}
 
-impl Particle {
-    pub fn predict_time_of_impact(&self, particle: &Particle) -> Option<f64> {
-        let toi = query::time_of_impact_ball_ball(
-            &self.position,     // 初始位置
-            &self.velocity,     // 初始速度
-            &self.ball,         // 形状
-            &particle.position, //
-            &particle.velocity, //
-            &particle.ball,     //
-            3.0,                // the maximum allowed time of impact.
-            0.0,                // target distance between spheres
-        )?;
+    fn handle_collision_for_particles(particles: &mut [Particle]) {
+        todo!()
+    }
 
-        {
+    #[test]
+    fn test_nc() {
+        let ball1 = Ball::new(1.0);
+        let ball2 = Ball::new(1.0);
+
+        // 初始化位置
+        let ball_pos1 = Point::new(0.0, 0.0, 0.0);
+        let ball_pos2 = Point::new(3.0, 3.0, 3.0);
+
+        // 初始化速度
+        let ball_vel1 = Vector::new(2.0, 2.0, 2.0);
+        let ball_vel2 = Vector::new(-0.5, -0.5, -0.5);
+
+        if let Some(toi) = query::time_of_impact_ball_ball(
+            &ball_pos1, // 初始位置
+            &ball_vel1, // 初始速度
+            &ball1,     // 形状
+            &ball_pos2, //
+            &ball_vel2, //
+            &ball2,     //
+            3.0,        // the maximum allowed time of impact.
+            0.0,        // target distance between spheres
+        ) {
             // 如果是Some(0.0), 表示已经接触
             // 如果是None, 表示不会接触
             // 如果是Some(2.0), 表示2.0单位的时间后会接触.
             println!("{:?}", toi);
         }
-        toi.toi.into()
     }
 }
-// 3fb2306d ends here
+// e6da4ab2 ends here
