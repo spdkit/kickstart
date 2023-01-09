@@ -18,30 +18,35 @@ pub struct Particle {
 }
 
 impl Particle {
-    fn new(radius: f64) -> Self {
+    /// Create a new `Particle` with sphere size in `radius`
+    pub fn new(radius: f64) -> Self {
         Self {
             ball: Ball::new(radius),
-            charge: 0.0,
+            charge: 1.0,
             position: Point::new(0.0, 0.0, 0.0),
             velocity: Vector::new(0.0, 0.0, 0.0),
             mass: 1.0,
         }
     }
 
+    /// Set partial charge
     pub fn set_charge(&mut self, charge: f64) {
         self.charge = charge;
     }
 
+    /// Set initial cartesian position
     pub fn set_position(&mut self, coord: [f64; 3]) {
         self.position = coord.into();
     }
 
+    /// Set particle mass
     pub fn set_mass(&mut self, mass: f64) {
         assert!(mass.is_sign_positive(), "invalid mass: {mass:?}");
         self.mass = mass;
     }
 
-    pub fn set_velocity(&mut self, velocity: [f64; 3]) {
+    /// Set paritcle initial velocity
+    pub fn set_velocity(&mut self, velocity: impl Into<Vector<f64>>) {
         self.velocity = velocity.into();
     }
 }
@@ -74,6 +79,7 @@ fn evaluate_energy_and_force(particles: &[Particle]) -> (f64, Vec<f64>) {
     let mut f = vec![];
     for i in 0..n {
         let pi = &particles[i];
+        dbg!(pi.charge);
         let mut fi = Vector::default();
         for j in 0..i {
             let pj = &particles[j];
@@ -250,6 +256,7 @@ mod collision {
 use gosh::optim::Dynamics;
 use gosh::optim::PotentialOutput;
 
+#[derive(Debug, Default, Clone)]
 pub struct System {
     mass: Vec<f64>,
     velocity: Vec<f64>,
@@ -275,6 +282,7 @@ impl System {
                 particles[i].set_position(p);
             }
             let (energy, forces) = evaluate_energy_and_force(&particles);
+            println!("evaluated energy = {energy}");
             f.clone_from_slice(&forces);
             Ok(energy)
         });
@@ -295,11 +303,20 @@ impl System {
                 if let Some(toi) = pi.predict_time_of_impact(pj, dt) {
                     dbg!(toi);
                     let (va, vb) = pi.collision_reflect(pj);
-                    particles_[i].set_velocity(va.into());
-                    particles_[j].set_velocity(vb.into());
+                    particles_[i].set_velocity(va);
+                    particles_[j].set_velocity(vb);
                 } else {
                     dbg!("nop");
                 }
+            }
+            for i in 0..np {
+                let x = particles_[i].position.x;
+                let y = particles_[i].position.y;
+                let z = particles_[i].position.z;
+                let vx = particles_[i].velocity.x;
+                let vy = particles_[i].velocity.y;
+                let vz = particles_[i].velocity.z;
+                println!("H {x:-13.4} {y:-13.4} {z:-13.4} {vx:-13.4} {vy:-13.4} {vz:-13.4}");
             }
         }
         // copy velocity back
@@ -312,3 +329,28 @@ impl System {
     }
 }
 // 7fa10d91 ends here
+
+// [[file:../kickstart.note::8816fcb4][8816fcb4]]
+#[test]
+fn test_hardsphere_simulation() {
+    let mut sys = System::default();
+    let unit = 1E-6;
+    let mut p1 = Particle::new(0.5 * unit);
+    p1.set_position([1.403 * unit, 0.414 * unit, 0.018 * unit]);
+    p1.set_mass(12.0);
+    p1.set_charge(-1.0);
+    p1.set_velocity([1.0, 0.0, -3.0]);
+    let mut p2 = Particle::new(0.2 * unit);
+    p2.set_mass(1.0);
+    p2.set_position([1.760 * unit, -0.595 * unit, 0.018 * unit]);
+    p2.set_velocity([1.0; 3]);
+    p2.set_charge(0.5);
+    let mut p3 = Particle::new(0.2 * unit);
+    p3.set_position([1.760 * unit, 0.918 * unit, -0.855 * unit]);
+    p3.set_mass(1.0);
+    p3.set_velocity([-1.0; 3]);
+    p3.set_charge(0.5);
+    let mut particles = [p1, p2, p3];
+    sys.simulate(&mut particles, 0.1, 5);
+}
+// 8816fcb4 ends here
