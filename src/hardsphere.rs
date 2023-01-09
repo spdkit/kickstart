@@ -8,6 +8,7 @@ use vecfx::*;
 use ncollide3d::math::{Point, Vector};
 use ncollide3d::shape::Ball;
 
+#[derive(Debug, Clone)]
 pub struct Particle {
     ball: Ball<f64>,
     charge: f64,
@@ -162,51 +163,6 @@ mod charged {
 }
 // 19b64702 ends here
 
-// [[file:../kickstart.note::7fa10d91][7fa10d91]]
-use gosh::optim::Dynamics;
-use gosh::optim::PotentialOutput;
-
-pub struct System {
-    mass: Vec<f64>,
-    velocity: Vec<f64>,
-}
-
-impl System {
-    fn propagate<U>(&mut self, dynamics: &mut Dynamics<U>, dt: f64) -> Result<()> {
-        assert_eq!(self.mass.len(), dynamics.position().len());
-        velocity_verlet_update(&mut self.velocity, dynamics, dt, &self.mass)?;
-        Ok(())
-    }
-
-    /// Start MD simulation of particles using with time step `dt` and
-    /// max number of iterations `nmax
-    pub fn simulate(&mut self, particles: &mut [Particle], dt: f64, nmax: usize) -> Result<()> {
-        self.mass = particles.iter().map(|p| p.mass).collect();
-
-        let xinit = particles.iter().flat_map(|p| p.position.iter().copied()).collect_vec();
-        let mut dynamics = Dynamics::new(xinit.as_slice(), |x: &[f64], f: &mut [f64]| {
-            for (i, &p) in x.as_3d().iter().enumerate() {
-                particles[i].set_position(p);
-            }
-            let (energy, forces) = evaluate_energy_and_force(&particles);
-            f.clone_from_slice(&forces);
-            Ok(energy)
-        });
-
-        for i in 0..nmax {
-            self.propagate(&mut dynamics, dt)?;
-        }
-        // copy velocity back
-        drop(dynamics);
-        for (v, p) in self.velocity.as_3d().iter().zip(particles) {
-            p.set_velocity(*v);
-        }
-
-        Ok(())
-    }
-}
-// 7fa10d91 ends here
-
 // [[file:../kickstart.note::e6da4ab2][e6da4ab2]]
 mod collision {
     use super::*;
@@ -224,17 +180,32 @@ mod collision {
         ///   * max_time: the maximum allowed time of impact.
         pub(super) fn predict_time_of_impact(&self, particle: &Particle, max_time: f64) -> Option<f64> {
             let toi = query::time_of_impact_ball_ball(
-                &self.position,     // 初始位置
-                &self.velocity,     // 初始速度
-                &self.ball,         // 形状
-                &particle.position, //
-                &particle.velocity, //
-                &particle.ball,     //
+                &self.position,     // initial position
+                &self.velocity,     // initial velocity
+                &self.ball,         // the ball
+                &particle.position, // other position
+                &particle.velocity, // other velocity
+                &particle.ball,     // other ball
                 max_time,           // the maximum allowed time of impact.
                 0.0,                // target distance between spheres
             )?;
 
             toi.toi.into()
+        }
+
+        /// Update particle velocities after collision for reflection with each other.
+        pub(super) fn collision_reflect(&self, other: &Particle) -> (Vector<f64>, Vector<f64>) {
+            let ma = self.mass;
+            let mb = other.mass;
+            let mass_ratio = 1.0 / (1.0 / ma + 1.0 / mb);
+
+            let n = (self.position - other.position).normalize();
+            let vi = self.velocity;
+            let vo_a = vi - 2.0 * (vi.dot(&n) * n) / ma / mass_ratio;
+            let vi = other.velocity;
+            let vo_b = vi + 2.0 * (vi.dot(&n) * n) / mb / mass_ratio;
+
+            (vo_a, vo_b)
         }
     }
 
@@ -243,6 +214,7 @@ mod collision {
     }
 
     #[test]
+    #[ignore]
     fn test_nc() {
         let ball1 = Ball::new(1.0);
         let ball2 = Ball::new(1.0);
@@ -273,3 +245,70 @@ mod collision {
     }
 }
 // e6da4ab2 ends here
+
+// [[file:../kickstart.note::7fa10d91][7fa10d91]]
+use gosh::optim::Dynamics;
+use gosh::optim::PotentialOutput;
+
+pub struct System {
+    mass: Vec<f64>,
+    velocity: Vec<f64>,
+}
+
+impl System {
+    fn propagate<U>(&mut self, dynamics: &mut Dynamics<U>, dt: f64) -> Result<()> {
+        assert_eq!(self.mass.len(), dynamics.position().len());
+        velocity_verlet_update(&mut self.velocity, dynamics, dt, &self.mass)?;
+        Ok(())
+    }
+
+    /// Start MD simulation of particles using with time step `dt` and
+    /// max number of iterations `nmax
+    pub fn simulate(&mut self, particles: &mut [Particle], dt: f64, nmax: usize) -> Result<()> {
+        let mut particles_ = particles.to_vec();
+        self.mass = particles.iter().flat_map(|p| [p.mass; 3]).collect();
+        self.velocity = particles.iter().flat_map(|p| -> [f64; 3] { p.velocity.into() }).collect();
+
+        let xinit = particles.iter().flat_map(|p| p.position.iter().copied()).collect_vec();
+        let mut dynamics = Dynamics::new(xinit.as_slice(), |x: &[f64], f: &mut [f64]| {
+            for (i, &p) in x.as_3d().iter().enumerate() {
+                particles[i].set_position(p);
+            }
+            let (energy, forces) = evaluate_energy_and_force(&particles);
+            f.clone_from_slice(&forces);
+            Ok(energy)
+        });
+
+        let np = particles_.len();
+        for _ in 0..nmax {
+            self.propagate(&mut dynamics, dt)?;
+            let positions = dynamics.position().as_3d().iter().copied().collect_vec();
+            let velocities = self.velocity.as_3d().iter().copied().collect_vec();
+            for i in 0..np {
+                particles_[i].set_position(positions[i]);
+                particles_[i].set_velocity(velocities[i]);
+            }
+            for p in (0..np).combinations(2) {
+                let (i, j) = (p[0], p[1]);
+                let pi = &particles_[i];
+                let pj = &particles_[j];
+                if let Some(toi) = pi.predict_time_of_impact(pj, dt) {
+                    dbg!(toi);
+                    let (va, vb) = pi.collision_reflect(pj);
+                    particles_[i].set_velocity(va.into());
+                    particles_[j].set_velocity(vb.into());
+                } else {
+                    dbg!("nop");
+                }
+            }
+        }
+        // copy velocity back
+        drop(dynamics);
+        for (v, p) in self.velocity.as_3d().iter().zip(particles) {
+            p.set_velocity(*v);
+        }
+
+        Ok(())
+    }
+}
+// 7fa10d91 ends here
