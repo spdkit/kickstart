@@ -20,7 +20,7 @@ crossbeam-channel = "0.3"
 #ctrlc = "3"
 #-------------------------------------------------
 gut = { version = "0.4", package = "gchemol-gut" }
-gosh = { version = "0.1", features = ["adhoc"] }
+gosh = { version = "0.2", features = ["adhoc"] }
 spdkit = { version = "0.1" }
 educate = { version = "0.1", path = "../structure-education", features = [
   "adhoc",
@@ -29,7 +29,7 @@ surface = { version = ">0.0.30", path = "../surface-explorer", features = [
   "adhoc",
 ] }
 vecfx = { version = "0.1", features = ["nalgebra"] }
-minima-hopping = { version = "0.0.34", features = ["adhoc"] }
+minima-hopping = { version = "0.0.35", features = ["adhoc"] }
 
 # for hard sphere
 ncollide3d = "0.33.0"
