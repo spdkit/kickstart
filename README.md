@@ -36,7 +36,10 @@ This generation stage is part of the Theory Engineering pipeline used to build a
 
 ## Quick start (Linux x86_64)
 
-1. Download assets from the latest GitHub Release.
+1. Download assets from the GitHub Release page:
+
+   <https://github.com/spdkit/kickstart/releases/tag/v0.1.0>
+
 2. Make binaries executable:
 
 ```bash
