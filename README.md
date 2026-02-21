@@ -1,32 +1,49 @@
 # kickstart
 
-`kickstart` is a command-line toolkit for molecular structure exploration.
+`kickstart` is a command-line toolkit for stochastic molecular structure generation and refinement.
 
-This repository is published as a **research artifact** for supplementary information (SI).
-The practical distribution path is prebuilt Linux binaries.
+This repository is published as a **source-available, binary-distributed research artifact** for the Supplementary Information (SI) of the manuscript:
+
+> *Closing the gap between theory and experiment in vibrational spectroscopy via physics-informed theory engineering*
+
+## Scientific context
+
+In the SI workflow (Supplementary Note 1), `kickstart` is used to explore CHON molecular space (typically < 12 heavy atoms) by combining:
+
+- random coordinate kicking,
+- distance-geometry filtering,
+- evolutionary refinement,
+- force-field-based geometry optimization.
+
+This generation stage is part of the Theory Engineering pipeline used to build a quasi-experimental IR library.
 
 ## What is included
 
-- `kickstart`: run genetic-search style structure exploration.
-- `kickgen`: generate random structures from an input molecule.
-- `kickmut`: generate random bond-mutation structures.
+- `kickstart`: orchestration and search workflow entry point.
+- `kickgen`: random structure generation from an input molecule.
+- `kickmut`: random bond-mutation structure generation.
 
-## Scope and reproducibility
+## Distribution model and reproducibility
 
-- This project is provided in a **binary-first** mode.
-- Some development dependencies in the source tree are private and are not published.
-- For SI verification, use the Linux release binaries attached on GitHub Releases.
+- This project is distributed in **binary-first mode** for Linux x86_64.
+- Official release binaries are built with `musl`, statically linked, and have no runtime dynamic-library dependency.
+- Source code is provided for transparency and method inspection.
+- For SI verification, use the release binaries and the release-specific example assets.
+
+## Documentation
+
+- User guide: `user-guide.md`
 
 ## Quick start (Linux x86_64)
 
-1. Download binaries from the latest GitHub Release.
-2. Make them executable:
+1. Download assets from the latest GitHub Release.
+2. Make binaries executable:
 
 ```bash
 chmod +x kickstart kickgen kickmut
 ```
 
-3. Check they run:
+3. Sanity check:
 
 ```bash
 ./kickstart --help
@@ -34,7 +51,7 @@ chmod +x kickstart kickgen kickmut
 ./kickmut --help
 ```
 
-## Minimal commands
+## Minimal usage
 
 ```bash
 ./kickgen input.mol2 output_gen.mol2 -n 10
@@ -44,4 +61,7 @@ chmod +x kickstart kickgen kickmut
 
 ## Citation
 
-If you use this artifact in academic work, please cite the associated paper and repository release tag used in SI.
+If you use this artifact, please cite:
+
+1. the associated manuscript, and
+2. the exact GitHub release tag used in your SI or benchmark.
