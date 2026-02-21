@@ -19,3 +19,4 @@ Cargo.lock
 **/*.rs.bk
 *.note
 *.note_archive
+/ai-chats/
